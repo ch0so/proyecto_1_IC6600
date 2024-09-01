@@ -33,7 +33,7 @@ CC = gcc
 CFLAGS = -Wall -g
 
 # Archivos de código fuente y objeto
-SRCS = web_crawler.c main.c
+SRCS = web_crawler.c mainThreads.c
 OBJS = $(SRCS:.c=.o)
 
 # Archivos de cabecera

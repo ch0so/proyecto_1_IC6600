@@ -16,13 +16,32 @@ typedef struct args_thread{
 
 } args_thread;
 
+typedef struct encoded_data_threads{
+    char* encoded_str;
+    size_t encoded_len;
+} encoded_data_threads;
+
+typedef struct huffman_encoded_data {
+    long initial;
+    long final;
+    encoded_data_threads* encoded_data;
+    const char* str;
+    code_map* map; 
+    int map_size; 
+    char** encoded_str; 
+    size_t* encoded_len;
+} huffman_encoded_data;
+
+#define ENCODED_DATA_THREADS 4
+
+// STRUCTS NUEVOS ^^^
 
 
 void download_text_files(const char* base_url) {
     CURL *curl;
     CURLcode res;
     memory_data chunk;
-    
+
     chunk.data = malloc(1);  
     chunk.size = 0;          
 
@@ -138,43 +157,72 @@ huffman_node* build_huffman_tree(int node_count, huffman_node** nodes) {
     return nodes[0];
 }
 
-void encode_huffman(const char* str, code_map* map, int map_size, char** encoded_str, size_t* encoded_len) {
-    size_t buffer_size = 1024 * 1024; 
-    *encoded_str = (char*)malloc(buffer_size);
-    if (*encoded_str == NULL) {
-        perror("Error asignando memoria para el buffer de codificación");
-        exit(EXIT_FAILURE);
-    }
-    
+void* encode_huffman_aux(void* arg) {
+    huffman_encoded_data* data = (huffman_encoded_data*)arg;
+
+    size_t* encoded_len = data->encoded_len;
+    char** encoded_str = data->encoded_str;
+    const char* str = data->str;
+    code_map* map = data->map;
+    int map_size = data->map_size;
+
+    size_t buffer_size = 1024;
+
     size_t pos = 0;
     *encoded_len = 0;
-    while (*str) { // [DIVIDIR]
-        int found = 0;
-        for (int i = 0; i < map_size; i++) {
-            if (*str == map[i].character) {
-                size_t code_len = strlen(map[i].code);
-                while (pos + code_len >= buffer_size) {
-                    buffer_size *= 2;
-                    *encoded_str = (char*)realloc(*encoded_str, buffer_size);
-                    if (*encoded_str == NULL) {
-                        perror("Error reasignando memoria para el buffer de codificación");
-                        exit(EXIT_FAILURE);
-                    }
+    int found = 0;
+    for (int i = 0; i < map_size; i++) {
+        if (*str == map[i].character) {
+            size_t code_len = strlen(map[i].code);
+            while (pos + code_len >= buffer_size) {
+                buffer_size *= 2;
+                *encoded_str = (char*)realloc(*encoded_str, buffer_size);
+                if (*encoded_str == NULL) {
+                    perror("Error reasignando memoria para el buffer de codificación");
+                    exit(EXIT_FAILURE);
                 }
-                strcpy(*encoded_str + pos, map[i].code);
-                pos += code_len;
-                *encoded_len = pos;
-                found = 1;
-                break;
             }
+            strcpy(*encoded_str + pos, map[i].code);
+            pos += code_len;
+            *encoded_len = pos;
+            found = 1;
+            break;
         }
-        if (!found) {
-            fprintf(stderr, "Error: Carácter '%c' no encontrado en el mapa de códigos\n", *str);
-            exit(EXIT_FAILURE);
-        }
-        str++;
     }
-    (*encoded_str)[pos] = '\0';
+    if (!found) {
+        fprintf(stderr, "Error: Carácter '%c' no encontrado en el mapa de códigos\n", *str);
+        exit(EXIT_FAILURE);
+    }
+    str++;
+}
+
+void encode_huffman_threads(const char* str, code_map* map, int map_size, char** encoded_str, size_t* encoded_len) {
+    // New 
+    long string_length = strlen(str) + 1; // + 1 considers null terminator
+    long segment_length = string_length / ENCODED_DATA_THREADS; 
+
+    encoded_data_threads* encoded_data = (encoded_data_threads*)malloc(sizeof(encoded_data_threads) * ENCODED_DATA_THREADS);
+
+    pthread_t threads[ENCODED_DATA_THREADS];
+
+    for (int i = 0; i < ENCODED_DATA_THREADS; i++) {
+        huffman_encoded_data* data = (huffman_encoded_data*)malloc(sizeof(huffman_encoded_data));
+        data->initial = i * segment_length;
+        data->final = (i == ENCODED_DATA_THREADS - 1) ? string_length : (i + 1) * segment_length;
+        data->encoded_len = encoded_len;
+        data->encoded_data = encoded_data[i];
+        data->str = str + data->initial;
+        data->map = map;
+        data->map_size = map_size;
+        data->encoded_str = encoded_str;
+        pthread_create(&threads[i], NULL, encode_huffman_aux, (void*)data);
+    }
+
+    for (int i = 0; i < ENCODED_DATA_THREADS; i++) {
+        pthread_join(threads[i], NULL);
+    }
+    
+    // (*encoded_str)[pos] = '\0';
 }
 
 void decode_huffman(const char* encoded_str, huffman_node* root, FILE* output_file) {
@@ -435,7 +483,7 @@ void process_directory(const char* dir_path, const char* compressed_file_path) {
             int frequencies[256];
             char unique_characters[256];
             int unique_count;
-                count_frequencies(input_str, frequencies, unique_characters, &unique_count);
+            count_frequencies(input_str, frequencies, unique_characters, &unique_count);
 
             huffman_node* nodes[256];
             for (int i = 0; i < unique_count; i++) { // [DIVIDIR] en 27 hilos para cada letra (Se tendria que hacer varios for por el indice)
@@ -450,12 +498,12 @@ void process_directory(const char* dir_path, const char* compressed_file_path) {
 
             char* encoded_str;
             size_t encoded_len;
-            encode_huffman(input_str, map, map_size, &encoded_str, &encoded_len);
+            encode_huffman_threads(input_str, map, map_size, &encoded_str, &encoded_len);
 
             size_t name_len = strlen(entry->d_name);
             fwrite(&name_len, sizeof(size_t), 1, compressed_file);
             fwrite(entry->d_name, sizeof(char), name_len, compressed_file);
-
+            
             write_huffman_tree(compressed_file, root);
 
             fwrite(&encoded_len, sizeof(size_t), 1, compressed_file);
@@ -477,7 +525,33 @@ void process_directory(const char* dir_path, const char* compressed_file_path) {
 
 void *thread_process(void* arg){
 
+    args_thread* args = (args_thread*)arg;
+    printf("Thread ID: %d, File Path: %s\n", args->thread_id, args->file_path);
+
+    char* input_str = read_file(args->file_path);
+    int frequencies[256];
+    char unique_characters[256];
+    int unique_count;
+    count_frequencies(input_str, frequencies, unique_characters, &unique_count);
+
+    huffman_node* nodes[256];
+    for (int i = 0; i < unique_count; i++) { 
+        nodes[i] = create_node(unique_characters[i], frequencies[i]);
+    }
+
+    huffman_node* root = build_huffman_tree(unique_count, nodes);
+
+    code_map map[256];
+    int map_size;
+    create_code_map(root, map, &map_size);
+
+    char* encoded_str;
+    size_t encoded_len;
+    encode_huffman_threads(input_str, map, map_size, &encoded_str, &encoded_len);
+
+    free(args);
     
+    return NULL;
 
 };
 
@@ -520,19 +594,25 @@ void process_directory_threads(const char* dir_path, const char* compressed_file
     while ((entry = readdir(dir)) != NULL) {
         if (entry->d_type == DT_REG) { 
             size_t path_len = strlen(dir_path) + strlen(entry->d_name) + 2; 
-            char* input_file_path = (char*)malloc(path_len);
-            if (input_file_path == NULL) {
-                perror("Error asignando memoria");
+
+            args_thread* args = (args_thread*)malloc(sizeof(args_thread));
+            if (args == NULL) {
+                printf("Error assigning memory to thread arg");
                 exit(EXIT_FAILURE);
             }
-            snprintf(input_file_path, path_len, "%s/%s", dir_path, entry->d_name);
 
-            ids[thread_counter] = thread_counter;
-            pthread_create(&threads[thread_counter], NULL, thread_process, &ids[thread_counter]);
+            snprintf(args->file_path, sizeof(args->file_path), "%s/%s", dir_path, entry->d_name);
+            args->thread_id = thread_counter;
 
+            pthread_create(&threads[thread_counter], NULL, thread_process, args);
+
+            thread_counter++;
             
-            free(input_file_path);
         }
+    }
+
+    for (int i = 0; i < thread_counter; i++) {
+        pthread_join(threads[i], NULL);
     }
 
     closedir(dir);

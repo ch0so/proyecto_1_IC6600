@@ -8,45 +8,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <pthread.h>
+#include "mainThreads.h"
 
-typedef struct args_thread
-{
-
-    char file_path[256];
-    int thread_id;
-
-} args_thread;
-
-typedef struct encoded_data_threads
-{
-    char *encoded_str;
-    size_t encoded_len;
-} encoded_data_threads;
-
-typedef struct huffman_encoded_data
-{
-    const char *str;
-    code_map *map;
-    int map_size;
-    char *encoded_str;
-    size_t *encoded_len;
-    long initial;
-    long final;
-} huffman_encoded_data;
-
-typedef struct
-{
-    const char *encoded_str;
-    long initial;
-    long final;
-    huffman_node *root;
-    FILE *output_file;
-    pthread_mutex_t *mutex;
-} huffman_decoded_data;
-
-#define ENCODED_DATA_THREADS 4
-
-// STRUCTS NUEVOS ^^^
+pthread_mutex_t encoded_str_mutex;
 
 void download_text_files(const char *base_url)
 {
@@ -107,27 +71,12 @@ void download_text_files(const char *base_url)
     remove("links.txt");
 }
 
-typedef struct huffman_node
-{
-    int frequency;
-    char character;
-    struct huffman_node *left;
-    struct huffman_node *right;
-} huffman_node;
-
-typedef struct code_map
-{
-    char character;
-    char *code;
-} code_map;
-
 int compare_nodes(const void *a, const void *b)
 {
     huffman_node *node_a = *(huffman_node **)a;
     huffman_node *node_b = *(huffman_node **)b;
     return node_a->frequency - node_b->frequency;
 }
-
 huffman_node *create_node(char character, int frequency)
 {
     huffman_node *node = (huffman_node *)malloc(sizeof(huffman_node));
@@ -231,14 +180,12 @@ void *encode_huffman_aux(void *arg) // [DIVIDIDO] - IMPLEMENTADO - PROBAR
             pthread_exit(NULL);
         }
     }
+
     thread_encoded_str[pos] = '\0';
 
-    pthread_mutex_lock(&encoded_str_mutex);
-    strcat(*(data->encoded_str), thread_encoded_str);
-    *(data->encoded_len) += pos;
-    pthread_mutex_unlock(&encoded_str_mutex);
+    data->buffer_size = buffer_size;
+    data->encoded_str = thread_encoded_str;
 
-    free(thread_encoded_str);
     pthread_exit(NULL);
 }
 
@@ -246,10 +193,7 @@ void encode_huffman_threads(const char *str, code_map *map, int map_size, char *
 {
     long string_length = strlen(str);
     long segment_length = string_length / ENCODED_DATA_THREADS;
-
-    size_t final_buffer_size = 1024 * 1024;
-    *encoded_str = (char *)malloc(final_buffer_size);
-    (*encoded_str)[0] = '\0';
+    
 
     pthread_t threads[ENCODED_DATA_THREADS];
     huffman_encoded_data thread_data[ENCODED_DATA_THREADS];
@@ -261,7 +205,6 @@ void encode_huffman_threads(const char *str, code_map *map, int map_size, char *
         thread_data[i].str = str;
         thread_data[i].map = map;
         thread_data[i].map_size = map_size;
-        thread_data[i].encoded_str = encoded_str;
         thread_data[i].encoded_len = encoded_len;
         thread_data[i].initial = i * segment_length;
         thread_data[i].final = (i == ENCODED_DATA_THREADS - 1) ? string_length : (i + 1) * segment_length;
@@ -272,6 +215,16 @@ void encode_huffman_threads(const char *str, code_map *map, int map_size, char *
     for (int i = 0; i < ENCODED_DATA_THREADS; i++)
     {
         pthread_join(threads[i], NULL);
+    }
+
+    *encoded_str = (char *)malloc(thread_data[0].buffer_size * 4);
+    (*encoded_str)[0] = '\0';
+
+    for (int i = 0; i < ENCODED_DATA_THREADS; i++)
+    {
+        strcat(*encoded_str, thread_data[i].encoded_str);
+        *encoded_len += strlen(thread_data[i].encoded_str);
+        free(thread_data[i].encoded_str);
     }
 
     pthread_mutex_destroy(&encoded_str_mutex);
@@ -350,7 +303,7 @@ void generate_codes(huffman_node *root, char *code, int length, code_map *map, i
         map[*map_size].code = (char *)malloc(length + 1);
         if (map[*map_size].code == NULL)
         {
-            perror("Error asignando memoria para el código");
+            perror("Error asignando memoria para el cÃ³digo");
             exit(EXIT_FAILURE);
         }
         strncpy(map[*map_size].code, code, length);
@@ -693,7 +646,27 @@ void *thread_process(void *arg)
     size_t encoded_len;
     encode_huffman_threads(input_str, map, map_size, &encoded_str, &encoded_len);
 
-    free(args);
+    // [NEW]
+
+    size_t name_len = strlen(args->file_name);
+    fwrite(&name_len, sizeof(size_t), 1, compressed_file);
+    fwrite(entry->d_name, sizeof(char), name_len, compressed_file);
+
+    write_huffman_tree(compressed_file, root);
+
+    fwrite(&encoded_len, sizeof(size_t), 1, compressed_file);
+    write_bits(compressed_file, encoded_str, encoded_len);
+
+    for (int i = 0; i < map_size; i++) {
+        free(map[i].code);
+    }
+
+    // free(input_str);
+    // free(encoded_str);
+    // free_huffman_tree(root);
+    // free(input_file_path);
+
+    // free(args);
 
     return NULL;
 };
@@ -754,6 +727,8 @@ void process_directory_threads(const char *dir_path, const char *compressed_file
 
             snprintf(args->file_path, sizeof(args->file_path), "%s/%s", dir_path, entry->d_name);
             args->thread_id = thread_counter;
+            args->file_name = entry->d_name;
+            args->compressed_file = compressed_file;
 
             pthread_create(&threads[thread_counter], NULL, thread_process, args);
 
@@ -872,7 +847,7 @@ int main()
     const char *compressed_file_path = "compressed_books/compressed.bin";
     const char *decompressed_dir = "decompressed_books";
 
-    // process_directory(input_dir, compressed_file_path);
+    //process_directory(input_dir, compressed_file_path);
 
     // decompress_files(compressed_file_path, decompressed_dir);
 

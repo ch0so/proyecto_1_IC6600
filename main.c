@@ -622,18 +622,46 @@ void decompress_files(const char* compressed_file_path, const char* output_dir) 
     fclose(compressed_file);
 }
 
-int main() {
-    //const char* base_url = "https://www.gutenberg.org/browse/scores/top";
-    //download_text_files(base_url);
-    const char* input_dir = "books_to_compress";
-    const char* compressed_file_path = "compressed_books/compressed.bin";
-    const char* decompressed_dir = "decompressed_books";
+int main()
+{
+    const char *input_dir = "books_to_compress";
+    const char *compressed_file_path = "compressed_books/compressed.bin";
+    const char *decompressed_dir = "decompressed_books";
 
-    //process_directory(input_dir, compressed_file_path);
+    int n = 10; // Number of iterations to run for better accuracy
+    clock_t start, end;
+    double totalTimeCompress = 0.0, totalTimeDecompress = 0.0;
+    
+    printf("Execution time for compression and decompression of text files\n");
+    printf("Standard Implementation\n");
+    printf("Number of iterations: %d\n", n);
+    printf("------------------------------------------------------------\n");
 
-    //decompress_files(compressed_file_path, decompressed_dir);
+    // Time the process_directory_threads function n times
+    for (int i = 0; i < n; i++) {
+        start = clock();
+        process_directory(input_dir, compressed_file_path);
+        end = clock();
+        totalTimeCompress += ((double)(end - start)) / CLOCKS_PER_SEC;
+    }
 
-    process_directory_threads(input_dir, compressed_file_path);
+    // Calculate the average time for compression
+    double averageCompressTime = totalTimeCompress / n;
+    printf("Total time taken to compress: %f seconds\n", totalTimeCompress);
+    printf("Average time taken to compress: %f seconds\n\n", averageCompressTime);
+
+    // Time the decompress_files function n times
+    for (int i = 0; i < n; i++) {
+        start = clock();
+        decompress_files(compressed_file_path, decompressed_dir);
+        end = clock();
+        totalTimeDecompress += ((double)(end - start)) / CLOCKS_PER_SEC;
+    }
+
+    // Calculate the average time for decompression
+    double averageDecompressTime = totalTimeDecompress / n;
+    printf("Total time taken to decompress: %f seconds\n", totalTimeDecompress);
+    printf("Average time taken to decompress: %f seconds\n", averageDecompressTime);
 
     return 0;
 }

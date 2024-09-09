@@ -11,7 +11,7 @@
 #include <unistd.h>
 
 // Constants
-#define ENCODED_DATA_THREADS 1
+#define ENCODED_DATA_THREADS 4
 #define FILE_PATH_SIZE 256
 
 // Struct definitions
@@ -62,6 +62,7 @@ typedef struct huffman_decoded_data {
 // Mutex
 extern pthread_mutex_t encoded_str_mutex;
 extern pthread_mutex_t file_mutex;
+extern pthread_mutex_t decode_str_mutex;
 
 // Function declarations
 void download_text_files(const char *base_url);

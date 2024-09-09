@@ -1,3 +1,7 @@
 # Notas para thread
 
-s
+IMPORTANTE 
+
+DIVIDIR
+
+DIVIDIDO

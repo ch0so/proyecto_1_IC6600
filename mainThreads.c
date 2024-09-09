@@ -653,18 +653,6 @@ void *thread_process(void *arg)
     encode_huffman_threads(input_str, map, map_size, &encoded_str, &encoded_len);
 
     pthread_mutex_lock(&file_mutex);
-    // printf("------------------------------------\n");
-    // printf("Comprimiendo archivo %s\n", args->file_name);
-    // printf("Tamaño original: %ld bytes\n", strlen(input_str));
-    // printf("Tamaño comprimido: %ld bytes\n", encoded_len / 8);
-    // printf("Tasa de compresión: %.2f%%\n", (1 - (double)encoded_len / (strlen(input_str) * 8)) * 100);
-    // printf("++++++++++++++++++++++++++++++++++++\n");
-    // printf("Datos Generales de Archivo Comprimido\n");
-    // printf("Nombre: %s\n", args->file_name);
-    // printf("Tamaño de nombre: %ld bytes\n", strlen(args->file_name));
-    // printf("Tamaño de arbol: %ld bytes\n", sizeof(huffman_node) * unique_count);
-    // printf("Tamaño de encoded: %ld bytes\n", encoded_len / 8);
-    // printf("------------------------------------\n");
     size_t name_len = strlen(args->file_name);
     fwrite(&name_len, sizeof(size_t), 1, args->compressed_file); // Escribe tam de nombre
     fwrite(args->file_name, sizeof(char), name_len, args->compressed_file); // Escribe nombre
@@ -858,6 +846,8 @@ void decompress_files(const char *compressed_file_path, const char *output_dir)
 
 int main()
 {
+    // const char* base_url = "https://www.gutenberg.org/browse/scores/top";
+    // download_text_files(base_url);
     const char *input_dir = "books_to_compress";
     const char *compressed_file_path = "compressed_books/compressed.bin";
     const char *decompressed_dir = "decompressed_books";

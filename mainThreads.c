@@ -34,6 +34,16 @@ typedef struct huffman_encoded_data
     long final;
 } huffman_encoded_data;
 
+typedef struct
+{
+    const char *encoded_str;
+    long initial;
+    long final;
+    huffman_node *root;
+    FILE *output_file;
+    pthread_mutex_t *mutex;
+} huffman_decoded_data;
+
 #define ENCODED_DATA_THREADS 4
 
 // STRUCTS NUEVOS ^^^
@@ -177,7 +187,7 @@ huffman_node *build_huffman_tree(int node_count, huffman_node **nodes)
     return nodes[0];
 }
 
-void *encode_huffman_aux(void *arg) // [DIVIDIR] - IMPLEMENTADO - PROBAR
+void *encode_huffman_aux(void *arg) // [DIVIDIDO] - IMPLEMENTADO - PROBAR
 {
     huffman_encoded_data *data = (huffman_encoded_data *)arg;
 
@@ -232,7 +242,7 @@ void *encode_huffman_aux(void *arg) // [DIVIDIR] - IMPLEMENTADO - PROBAR
     pthread_exit(NULL);
 }
 
-void encode_huffman_threads(const char *str, code_map *map, int map_size, char **encoded_str, size_t *encoded_len) // [DIVIDIR] - IMPLEMENTADO - PROBAR
+void encode_huffman_threads(const char *str, code_map *map, int map_size, char **encoded_str, size_t *encoded_len) // [DIVIDIDO] - IMPLEMENTADO - PROBAR
 {
     long string_length = strlen(str);
     long segment_length = string_length / ENCODED_DATA_THREADS;
@@ -267,26 +277,64 @@ void encode_huffman_threads(const char *str, code_map *map, int map_size, char *
     pthread_mutex_destroy(&encoded_str_mutex);
 }
 
-void decode_huffman(const char *encoded_str, huffman_node *root, FILE *output_file)
+void *decode_huffman_aux(void *arg)
 {
-    huffman_node *current = root; // [DIVIDIR]
-    for (int i = 0; encoded_str[i] != '\0'; i++)
+    huffman_decoded_data *data = (huffman_decoded_data *)arg;
+    huffman_node *current = data->root;
+
+    for (long i = data->initial; i < data->final; i++)
     {
-        if (encoded_str[i] == '0')
+        if (data->encoded_str[i] == '0')
         {
             current = current->left;
         }
-        else if (encoded_str[i] == '1')
+        else if (data->encoded_str[i] == '1')
         {
             current = current->right;
         }
 
         if (current->left == NULL && current->right == NULL)
         {
-            fputc(current->character, output_file);
-            current = root;
+
+            pthread_mutex_lock(data->mutex);
+            fputc(current->character, data->output_file);
+            pthread_mutex_unlock(data->mutex);
+
+            current = data->root;
         }
     }
+
+    return NULL;
+}
+
+void decode_huffman_threads(const char *encoded_str, huffman_node *root, FILE *output_file)
+{
+    long string_length = strlen(encoded_str);
+    long segment_length = string_length / ENCODED_DATA_THREADS;
+
+    pthread_t threads[ENCODED_DATA_THREADS];
+    huffman_decoded_data thread_data[ENCODED_DATA_THREADS];
+    pthread_mutex_t file_mutex;
+    pthread_mutex_init(&file_mutex, NULL);
+
+    for (int i = 0; i < ENCODED_DATA_THREADS; i++)
+    {
+        thread_data[i].encoded_str = encoded_str;
+        thread_data[i].initial = i * segment_length;
+        thread_data[i].final = (i == ENCODED_DATA_THREADS - 1) ? string_length : (i + 1) * segment_length;
+        thread_data[i].root = root;
+        thread_data[i].output_file = output_file;
+        thread_data[i].mutex = &file_mutex;
+
+        pthread_create(&threads[i], NULL, decode_huffman_aux, &thread_data[i]);
+    }
+
+    for (int i = 0; i < ENCODED_DATA_THREADS; i++)
+    {
+        pthread_join(threads[i], NULL);
+    }
+
+    pthread_mutex_destroy(&file_mutex);
 }
 
 void generate_codes(huffman_node *root, char *code, int length, code_map *map, int *map_size)
@@ -804,7 +852,7 @@ void decompress_files(const char *compressed_file_path, const char *output_dir)
             exit(EXIT_FAILURE);
         }
 
-        decode_huffman(encoded_str, root, output_file);
+        decode_huffman_threads(encoded_str, root, output_file);
         fclose(output_file);
 
         free(file_name);

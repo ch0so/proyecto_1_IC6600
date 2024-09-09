@@ -1,0 +1,7 @@
+.books_to_compress/
+
+.compressed_books/
+
+.decompressed_books/
+
+.temp/

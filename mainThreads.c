@@ -11,6 +11,7 @@
 #include "mainThreads.h"
 
 pthread_mutex_t encoded_str_mutex;
+pthread_mutex_t file_mutex;
 
 void download_text_files(const char *base_url)
 {
@@ -227,6 +228,9 @@ void encode_huffman_threads(const char *str, code_map *map, int map_size, char *
         free(thread_data[i].encoded_str);
     }
 
+    // *encoded_str = (char *)realloc(*encoded_str, *encoded_len + 1);
+    // strcat(*encoded_str, "\0");
+
     pthread_mutex_destroy(&encoded_str_mutex);
 }
 
@@ -262,32 +266,19 @@ void *decode_huffman_aux(void *arg)
 
 void decode_huffman_threads(const char *encoded_str, huffman_node *root, FILE *output_file)
 {
-    long string_length = strlen(encoded_str);
-    long segment_length = string_length / ENCODED_DATA_THREADS;
+    huffman_node* current = root; // [DIVIDIR]
+    for (int i = 0; encoded_str[i] != '\0'; i++) {
+        if (encoded_str[i] == '0') {
+            current = current->left;
+        } else if (encoded_str[i] == '1') {
+            current = current->right;
+        }
 
-    pthread_t threads[ENCODED_DATA_THREADS];
-    huffman_decoded_data thread_data[ENCODED_DATA_THREADS];
-    pthread_mutex_t file_mutex;
-    pthread_mutex_init(&file_mutex, NULL);
-
-    for (int i = 0; i < ENCODED_DATA_THREADS; i++)
-    {
-        thread_data[i].encoded_str = encoded_str;
-        thread_data[i].initial = i * segment_length;
-        thread_data[i].final = (i == ENCODED_DATA_THREADS - 1) ? string_length : (i + 1) * segment_length;
-        thread_data[i].root = root;
-        thread_data[i].output_file = output_file;
-        thread_data[i].mutex = &file_mutex;
-
-        pthread_create(&threads[i], NULL, decode_huffman_aux, &thread_data[i]);
+        if (current->left == NULL && current->right == NULL) {
+            fputc(current->character, output_file);
+            current = root; 
+        }
     }
-
-    for (int i = 0; i < ENCODED_DATA_THREADS; i++)
-    {
-        pthread_join(threads[i], NULL);
-    }
-
-    pthread_mutex_destroy(&file_mutex);
 }
 
 void generate_codes(huffman_node *root, char *code, int length, code_map *map, int *map_size)
@@ -621,8 +612,8 @@ void process_directory(const char *dir_path, const char *compressed_file_path)
 void *thread_process(void *arg)
 {
 
+    pthread_mutex_init(&file_mutex, NULL);
     args_thread *args = (args_thread *)arg;
-    printf("Thread ID: %d, File Path: %s\n", args->thread_id, args->file_path);
 
     char *input_str = read_file(args->file_path);
     int frequencies[256];
@@ -648,25 +639,31 @@ void *thread_process(void *arg)
 
     // [NEW]
 
-    size_t name_len = strlen(args->file_name);
-    fwrite(&name_len, sizeof(size_t), 1, compressed_file);
-    fwrite(entry->d_name, sizeof(char), name_len, compressed_file);
+    pthread_mutex_lock(&file_mutex);
+    size_t name_len = strlen(args->file_name); 
+    fwrite(&name_len, sizeof(size_t), 1, args->compressed_file); // Escribe tam de nombre
+    fwrite(args->file_name, sizeof(char), name_len, args->compressed_file); // Escribe nombre
 
-    write_huffman_tree(compressed_file, root);
+    write_huffman_tree(args->compressed_file, root); // Escribe arbol
 
-    fwrite(&encoded_len, sizeof(size_t), 1, compressed_file);
-    write_bits(compressed_file, encoded_str, encoded_len);
+    fwrite(&encoded_len, sizeof(size_t), 1, args->compressed_file); // Escribe tam de encoded
+    write_bits(args->compressed_file, encoded_str, encoded_len); // Escribe encoded
+    pthread_mutex_unlock(&file_mutex);
+
 
     for (int i = 0; i < map_size; i++) {
         free(map[i].code);
     }
 
-    // free(input_str);
-    // free(encoded_str);
-    // free_huffman_tree(root);
-    // free(input_file_path);
+    free(input_str);
+    free(encoded_str);
+    free_huffman_tree(root);
+    
+    printf("Thread ID: %d, File Path: %s\n", args->thread_id, args->file_path);
 
-    // free(args);
+
+    free(args);
+    pthread_mutex_destroy(&file_mutex);
 
     return NULL;
 };
@@ -701,6 +698,7 @@ void process_directory_threads(const char *dir_path, const char *compressed_file
     closedir(dir);
 
     pthread_t threads[amount_files];
+    args_thread *arr_args[amount_files];
     int ids[amount_files];
 
     dir = opendir(dir_path);
@@ -727,9 +725,10 @@ void process_directory_threads(const char *dir_path, const char *compressed_file
 
             snprintf(args->file_path, sizeof(args->file_path), "%s/%s", dir_path, entry->d_name);
             args->thread_id = thread_counter;
-            args->file_name = entry->d_name;
+            strncpy(args->file_name, entry->d_name, sizeof(args->file_name) - 1);
             args->compressed_file = compressed_file;
 
+            arr_args[thread_counter] = args;
             pthread_create(&threads[thread_counter], NULL, thread_process, args);
 
             thread_counter++;
@@ -741,6 +740,10 @@ void process_directory_threads(const char *dir_path, const char *compressed_file
         pthread_join(threads[i], NULL);
     }
 
+    // for (int i = 0; i < amount_files; i++)
+    // {
+    //     free(arr_args[i]);
+    // }
     closedir(dir);
     fclose(compressed_file);
 }
@@ -790,13 +793,16 @@ void decompress_files(const char *compressed_file_path, const char *output_dir)
         if (fread(&name_len, sizeof(size_t), 1, compressed_file) != 1)
             break;
 
-        char *file_name = (char *)malloc(name_len + 1);
+        printf("Name len: %ld\n", name_len);
+
+        char *file_name = (char *)malloc(2048 + 1);
         if (file_name == NULL)
         {
-            perror("Error asignando memoria");
+            perror("Error asignando memoria para el file_name");
             exit(EXIT_FAILURE);
         }
         fread(file_name, sizeof(char), name_len, compressed_file);
+        printf("File name: %s\n", file_name);
         file_name[name_len] = '\0';
 
         huffman_node *root = read_huffman_tree(compressed_file);
@@ -806,7 +812,7 @@ void decompress_files(const char *compressed_file_path, const char *output_dir)
         char *encoded_str = (char *)malloc(encoded_len + 1);
         if (encoded_str == NULL)
         {
-            perror("Error asignando memoria");
+            perror("Error asignando memoria para el encoded_str");
             exit(EXIT_FAILURE);
         }
         encoded_str[encoded_len] = '\0';
@@ -816,7 +822,7 @@ void decompress_files(const char *compressed_file_path, const char *output_dir)
         char *output_file_path = (char *)malloc(path_len);
         if (output_file_path == NULL)
         {
-            perror("Error asignando memoria");
+            perror("Error asignando memoria para el output_file_path");
             exit(EXIT_FAILURE);
         }
         snprintf(output_file_path, path_len, "%s/%s", output_dir, file_name);
@@ -849,9 +855,26 @@ int main()
 
     //process_directory(input_dir, compressed_file_path);
 
-    // decompress_files(compressed_file_path, decompressed_dir);
-
     process_directory_threads(input_dir, compressed_file_path);
 
+    
+    decompress_files(compressed_file_path, decompressed_dir);
+
+
     return 0;
-}
+} 
+
+/*
+Consola / Libro / Linea
+1. Romeo - 1
+2. Room - 851
+3. iddle - 2429
+4. Little - 2386
+5. Complete - 10338
+
+Ordenados por Linea:
+1. Romeo - 1
+2. Room - 851
+3. Little - 2386
+4. iddle - 2429
+*/

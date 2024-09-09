@@ -139,7 +139,7 @@ huffman_node *build_huffman_tree(int node_count, huffman_node **nodes)
     return nodes[0];
 }
 
-void *encode_huffman_aux(void *arg) // [DIVIDIDO] - IMPLEMENTADO - PROBAR
+void *encode_huffman_aux(void *arg) 
 {
     huffman_encoded_data *data = (huffman_encoded_data *)arg;
 
@@ -202,13 +202,13 @@ void encode_huffman_threads(const char *str, code_map *map, int map_size, char *
     huffman_encoded_data thread_data[ENCODED_DATA_THREADS];
 
     pthread_mutex_init(&encoded_str_mutex, NULL);
+    *encoded_len = 0;
 
     for (int i = 0; i < ENCODED_DATA_THREADS; i++)
     {
         thread_data[i].str = str;
         thread_data[i].map = map;
         thread_data[i].map_size = map_size;
-        thread_data[i].encoded_len = encoded_len;
         thread_data[i].initial = i * segment_length;
         thread_data[i].final = (i == ENCODED_DATA_THREADS - 1) ? string_length : (i + 1) * segment_length;
 
@@ -220,7 +220,13 @@ void encode_huffman_threads(const char *str, code_map *map, int map_size, char *
         pthread_join(threads[i], NULL);
     }
 
-    *encoded_str = (char *)malloc(thread_data[0].buffer_size * 4);
+    size_t total_size = 0;
+    for (int i = 0; i < ENCODED_DATA_THREADS; i++)
+    {
+        total_size += strlen(thread_data[i].encoded_str);
+    }
+
+    *encoded_str = (char *)malloc(total_size + 1);  
     (*encoded_str)[0] = '\0';
 
     for (int i = 0; i < ENCODED_DATA_THREADS; i++)
@@ -229,9 +235,6 @@ void encode_huffman_threads(const char *str, code_map *map, int map_size, char *
         *encoded_len += strlen(thread_data[i].encoded_str);
         free(thread_data[i].encoded_str);
     }
-
-    // *encoded_str = (char *)realloc(*encoded_str, *encoded_len + 1);
-    // strcat(*encoded_str, "\0");
 
     pthread_mutex_destroy(&encoded_str_mutex);
 }
@@ -650,6 +653,18 @@ void *thread_process(void *arg)
     encode_huffman_threads(input_str, map, map_size, &encoded_str, &encoded_len);
 
     pthread_mutex_lock(&file_mutex);
+    // printf("------------------------------------\n");
+    // printf("Comprimiendo archivo %s\n", args->file_name);
+    // printf("Tamaño original: %ld bytes\n", strlen(input_str));
+    // printf("Tamaño comprimido: %ld bytes\n", encoded_len / 8);
+    // printf("Tasa de compresión: %.2f%%\n", (1 - (double)encoded_len / (strlen(input_str) * 8)) * 100);
+    // printf("++++++++++++++++++++++++++++++++++++\n");
+    // printf("Datos Generales de Archivo Comprimido\n");
+    // printf("Nombre: %s\n", args->file_name);
+    // printf("Tamaño de nombre: %ld bytes\n", strlen(args->file_name));
+    // printf("Tamaño de arbol: %ld bytes\n", sizeof(huffman_node) * unique_count);
+    // printf("Tamaño de encoded: %ld bytes\n", encoded_len / 8);
+    // printf("------------------------------------\n");
     size_t name_len = strlen(args->file_name);
     fwrite(&name_len, sizeof(size_t), 1, args->compressed_file); // Escribe tam de nombre
     fwrite(args->file_name, sizeof(char), name_len, args->compressed_file); // Escribe nombre
@@ -847,12 +862,13 @@ int main()
     const char *compressed_file_path = "compressed_books/compressed.bin";
     const char *decompressed_dir = "decompressed_books";
 
-    int n = 1; // Number of iterations to run for better accuracy
+    int n = 100; // Number of iterations to run for better accuracy
     clock_t start, end;
     double totalTimeCompress = 0.0, totalTimeDecompress = 0.0;
     
     printf("Execution time for compression and decompression of text files\n");
     printf("Threads Implementation\n");
+    printf("Number of threads: %d\n", ENCODED_DATA_THREADS);
     printf("Number of iterations: %d\n\n", n);
     printf("------------------------------------------------------------\n");
 

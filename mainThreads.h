@@ -11,7 +11,7 @@
 #include <unistd.h>
 
 // Constants
-#define ENCODED_DATA_THREADS 4
+#define ENCODED_DATA_THREADS 8
 #define FILE_PATH_SIZE 256
 
 // Struct definitions
@@ -44,7 +44,6 @@ typedef struct huffman_encoded_data {
     code_map *map;
     int map_size;
     char *encoded_str;
-    size_t *encoded_len;
     long initial;
     long final;
     size_t buffer_size;

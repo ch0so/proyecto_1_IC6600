@@ -5,6 +5,8 @@
         "stdio.h": "c",
         "stat.h": "c",
         "dirent.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "stdlib.h": "c",
+        "pthread.h": "c"
     }
 }

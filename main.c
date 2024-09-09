@@ -628,7 +628,7 @@ int main()
     const char *compressed_file_path = "compressed_books/compressed.bin";
     const char *decompressed_dir = "decompressed_books";
 
-    int n = 10; // Number of iterations to run for better accuracy
+    int n = 100; // Number of iterations to run for better accuracy
     clock_t start, end;
     double totalTimeCompress = 0.0, totalTimeDecompress = 0.0;
     

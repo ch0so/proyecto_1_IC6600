@@ -422,18 +422,6 @@ void process_file(FILE *compressed_file, const char *output_dir) {
     }
 }
 
-void worker(const char *compressed_file_name, const char *output_dir) {
-    FILE *compressed_file = fopen(compressed_file_name, "rb");
-    if (!compressed_file) {
-        perror("Error abriendo el archivo comprimido");
-        exit(EXIT_FAILURE);
-    }
-
-    process_file(compressed_file, output_dir);
-    fclose(compressed_file);
-    exit(EXIT_SUCCESS);
-}
-
 void decompress_files(const char* compressed_file_path, const char* output_dir) {
     FILE* compressed_file = fopen(compressed_file_path, "rb");
     if (!compressed_file) {

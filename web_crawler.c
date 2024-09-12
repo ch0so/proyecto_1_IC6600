@@ -212,3 +212,54 @@ void process_link(CURL *curl_handle, const char *url) {
 
     free(response_chunk.data);
 }
+
+void download_text_files(const char* base_url) {
+    CURL *curl;
+    CURLcode res;
+    memory_data chunk;
+    
+    chunk.data = malloc(1);  
+    chunk.size = 0;          
+
+    curl_global_init(CURL_GLOBAL_ALL);
+    curl = curl_easy_init();
+    if (curl) {
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_URL, base_url);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_memory_callback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+        res = curl_easy_perform(curl);
+        if (res != CURLE_OK) {
+            fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+        } else {
+            extract_links_from_html(chunk.data);
+        }
+
+        curl_easy_cleanup(curl);
+    }
+
+    free(chunk.data);
+    curl_global_cleanup();
+
+    FILE *file;
+    char url[256];
+
+    curl = curl_easy_init();
+    if (curl) {
+        file = fopen("links.txt", "r");
+        if (file == NULL) {
+            perror("Error opening links.txt");
+        }
+
+        while (fgets(url, sizeof(url), file)) {
+            url[strcspn(url, "\r\n")] = '\0';
+            process_link(curl, url);
+        }
+
+        fclose(file);
+        curl_easy_cleanup(curl);
+    }
+
+    curl_global_cleanup();
+    remove("links.txt");
+}

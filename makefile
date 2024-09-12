@@ -5,27 +5,20 @@ CC = gcc
 CFLAGS = -Wall -g
 
 # Archivos de código fuente y objeto
-SRCS = web_crawler.c main.c mainThreads.c
-OBJS_MAIN = web_crawler.o main.o
-OBJS_THREADS = web_crawler.o mainThreads.o
+SRCS = web_crawler.c huffman_fork.c main.c 
+OBJS = web_crawler.o huffman_fork.o main.o
 
 # Archivos de cabecera
-HDRS = web_crawler.h
+HDRS = web_crawler.h huffman_fork.h
 
 # Ejecutables
 EXECUTABLE_MAIN = project_1
-EXECUTABLE_THREADS = project_threads
 
 # Objetivo por defecto: compilar ambos ejecutables
-all: $(EXECUTABLE_MAIN) $(EXECUTABLE_THREADS)
+all: $(EXECUTABLE_MAIN)
 
-# Construir el ejecutable principal (main.c)
-$(EXECUTABLE_MAIN): $(OBJS_MAIN)
-	$(CC) $(CFLAGS) -o $@ $(OBJS_MAIN) -lcurl -ltidy
-
-# Construir el ejecutable con hilos (mainThreads.c)
-$(EXECUTABLE_THREADS): $(OBJS_THREADS)
-	$(CC) $(CFLAGS) -o $@ $(OBJS_THREADS) -lcurl -ltidy -lpthread
+$(EXECUTABLE_MAIN): $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $(OBJS) -lcurl -ltidy
 
 # Regla general para compilar archivos .c en archivos .o
 %.o: %.c $(HDRS)
@@ -33,6 +26,6 @@ $(EXECUTABLE_THREADS): $(OBJS_THREADS)
 
 # Limpiar archivos generados
 clean:
-	rm -f *.o $(EXECUTABLE_MAIN) $(EXECUTABLE_THREADS)
+	rm -f *.o $(EXECUTABLE_MAIN)
 
 .PHONY: all clean

@@ -419,7 +419,7 @@ void read_bits(FILE* file, char* bits, size_t len) {
         }
     }
 }
-/*
+
 long find_file_position(FILE *compressed_file, const char *file_name) {
     fseek(compressed_file, 0, SEEK_SET); 
 
@@ -459,7 +459,6 @@ void decompress_file(const char* compressed_file_path, const char* file_name, co
         perror("Error abriendo el archivo comprimido para lectura");
         exit(EXIT_FAILURE);
     }
-
     long position = find_file_position(compressed_file, file_name);
     if (position < 0) {
         fprintf(stderr, "Error: archivo '%s' no encontrado en el archivo comprimido.\n", file_name);
@@ -526,7 +525,6 @@ void decompress_files(const char* compressed_file_path, const char* output_dir) 
         }
         fread(file_name, sizeof(char), name_len, compressed_file);
         file_name[name_len] = '\0';
-
         output_files[output_file_count] = file_name;
 
         huffman_node* root = read_huffman_tree(compressed_file);
@@ -551,24 +549,17 @@ void decompress_files(const char* compressed_file_path, const char* output_dir) 
     fclose(compressed_file);
 
     for (size_t i = 0; i < output_file_count; ++i) {
+        /*
         pid_t pid = fork();
         if (pid == 0) {
-            decompress_file(compressed_file_path, output_file_paths[i], output_files[i]);
-            exit(EXIT_SUCCESS);
+            decompress_file(compressed_file_path, output_files[i], output_file_paths[i]);
         } else if (pid < 0) {
             perror("Error al crear proceso hijo");
-            exit(EXIT_FAILURE);
-        }
+        }*/
     }
 
     for (size_t i = 0; i < output_file_count; ++i) {
         wait(NULL);
     }
-
-    for (size_t i = 0; i < output_file_count; ++i) {
-        free(output_files[i]);
-    }
-    free(output_files);
-    free(output_file_paths);
     
-}*/
+}

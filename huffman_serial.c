@@ -182,36 +182,6 @@ char* read_file(const char* file_path) {
     return buffer;
 }
 
-void write_binary_file(const char* file_path, const char* encoded_str) {
-    FILE* file = fopen(file_path, "wb");
-    if (!file) {
-        perror("Error abriendo el archivo");
-        exit(EXIT_FAILURE);
-    }
-
-    size_t length = strlen(encoded_str);
-    unsigned char byte = 0;
-    int bit_count = 0;
-
-    for (size_t i = 0; i < length; ++i) {
-        if (encoded_str[i] == '1') {
-            byte |= (1 << (7 - bit_count));
-        }
-
-        bit_count++;
-        if (bit_count == 8) {
-            fwrite(&byte, sizeof(unsigned char), 1, file);
-            byte = 0;
-            bit_count = 0;
-        }
-    }
-
-    if (bit_count > 0) {
-        fwrite(&byte, sizeof(unsigned char), 1, file);
-    }
-
-    fclose(file);
-}
 
 char* read_binary_file(const char* file_path, size_t* length) {
     FILE* file = fopen(file_path, "rb");

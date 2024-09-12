@@ -74,8 +74,6 @@ void generate_codes(huffman_node *root, char *code, int length, code_map *map, i
 void create_code_map(huffman_node *root, code_map *map, int *map_size);
 void free_huffman_tree(huffman_node *root);
 char *read_file(const char *file_path);
-void write_binary_file(const char *file_path, const char *encoded_str);
-char *read_binary_file(const char *file_path, size_t *length);
 void write_huffman_tree(FILE *file, huffman_node *root);
 huffman_node *read_huffman_tree(FILE *file);
 void write_bits(FILE *file, const char *bits, size_t len);

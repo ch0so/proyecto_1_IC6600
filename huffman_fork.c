@@ -4,7 +4,10 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <dirent.h>
+#include <pthread.h>
 #include "huffman_fork.h"
+
+pthread_mutex_t file_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int compare_nodes(const void* a, const void* b) {
     huffman_node* node_a = *(huffman_node**)a;
@@ -188,71 +191,6 @@ char* read_file(const char* file_path) {
     return buffer;
 }
 
-void write_binary_file(const char* file_path, const char* encoded_str) {
-    FILE* file = fopen(file_path, "wb");
-    if (!file) {
-        perror("Error abriendo el archivo");
-        exit(EXIT_FAILURE);
-    }
-
-    size_t length = strlen(encoded_str);
-    unsigned char byte = 0;
-    int bit_count = 0;
-
-    for (size_t i = 0; i < length; ++i) {
-        if (encoded_str[i] == '1') {
-            byte |= (1 << (7 - bit_count));
-        }
-
-        bit_count++;
-        if (bit_count == 8) {
-            fwrite(&byte, sizeof(unsigned char), 1, file);
-            byte = 0;
-            bit_count = 0;
-        }
-    }
-
-    if (bit_count > 0) {
-        fwrite(&byte, sizeof(unsigned char), 1, file);
-    }
-
-    fclose(file);
-}
-
-char* read_binary_file(const char* file_path, size_t* length) {
-    FILE* file = fopen(file_path, "rb");
-    if (!file) {
-        perror("Error abriendo el archivo");
-        exit(EXIT_FAILURE);
-    }
-
-    fseek(file, 0, SEEK_END);
-    size_t file_size = ftell(file);
-    rewind(file);
-
-    *length = file_size * 8;
-    char* buffer = (char*)malloc(*length + 1);
-    if (!buffer) {
-        perror("Error asignando memoria");
-        fclose(file);
-        exit(EXIT_FAILURE);
-    }
-
-    unsigned char byte;
-    size_t bit_index = 0;
-
-    while (fread(&byte, sizeof(unsigned char), 1, file) == 1) {
-        for (int bit_position = 7; bit_position >= 0; --bit_position) {
-            buffer[bit_index++] = (byte & (1 << bit_position)) ? '1' : '0';
-        }
-    }
-
-    buffer[*length] = '\0';
-
-    fclose(file);
-    return buffer;
-}
-
 void write_huffman_tree(FILE* file, huffman_node* root) {
     if (root == NULL) {
         fputc(0, file);
@@ -309,6 +247,7 @@ huffman_node* read_huffman_tree(FILE* file) {
 
     return node;
 }
+
 void write_bits(FILE* file, const char* bits, size_t len) {
     unsigned char byte = 0;
     int bit_count = 0;
@@ -338,16 +277,17 @@ void process_directory(const char* dir_path, const char* compressed_file_path) {
         exit(EXIT_FAILURE);
     }
 
-    struct dirent* entry;
     FILE* compressed_file = fopen(compressed_file_path, "wb");
     if (!compressed_file) {
         perror("Error abriendo el archivo comprimido para escritura");
         exit(EXIT_FAILURE);
     }
 
+    struct dirent* entry;
+
     while ((entry = readdir(dir)) != NULL) {
-        if (entry->d_type == DT_REG) { 
-            size_t path_len = strlen(dir_path) + strlen(entry->d_name) + 2; 
+        if (entry->d_type == DT_REG) {
+            size_t path_len = strlen(dir_path) + strlen(entry->d_name) + 2;
             char* input_file_path = (char*)malloc(path_len);
             if (input_file_path == NULL) {
                 perror("Error asignando memoria");
@@ -361,6 +301,7 @@ void process_directory(const char* dir_path, const char* compressed_file_path) {
                 perror("Error creando proceso hijo");
                 exit(EXIT_FAILURE);
             } else if (pid == 0) {
+                // Proceso hijo
                 char* input_str = read_file(input_file_path);
 
                 int frequencies[256];
@@ -383,6 +324,8 @@ void process_directory(const char* dir_path, const char* compressed_file_path) {
                 size_t encoded_len;
                 encode_huffman(input_str, map, map_size, &encoded_str, &encoded_len);
 
+                pthread_mutex_lock(&file_mutex);
+
                 size_t name_len = strlen(entry->d_name);
                 fwrite(&name_len, sizeof(size_t), 1, compressed_file);
                 fwrite(entry->d_name, sizeof(char), name_len, compressed_file);
@@ -391,6 +334,8 @@ void process_directory(const char* dir_path, const char* compressed_file_path) {
 
                 fwrite(&encoded_len, sizeof(size_t), 1, compressed_file);
                 write_bits(compressed_file, encoded_str, encoded_len);
+
+                pthread_mutex_unlock(&file_mutex);
 
                 for (int i = 0; i < map_size; i++) {
                     free(map[i].code);
@@ -401,19 +346,19 @@ void process_directory(const char* dir_path, const char* compressed_file_path) {
                 free(input_file_path);
 
                 fclose(compressed_file);  
-                exit(EXIT_SUCCESS);     
+                exit(EXIT_SUCCESS);
             } else {
                 free(input_file_path);
-
-                wait(NULL);  
+                wait(NULL);
             }
         }
     }
 
     closedir(dir);
+
     fclose(compressed_file);
 
-    while (wait(NULL) > 0);
+    pthread_mutex_destroy(&file_mutex);
 }
 
 void read_bits(FILE* file, char* bits, size_t len) {
@@ -472,7 +417,7 @@ void decompress_files(const char* compressed_file_path, const char* output_dir) 
         encoded_str[encoded_len] = '\0';
         read_bits(compressed_file, encoded_str, encoded_len);
 
-        size_t path_len = strlen(output_dir) + strlen(file_name) + 2; 
+        size_t path_len = strlen(output_dir) + strlen(file_name) + 2;
         char* output_file_path = (char*)malloc(path_len);
         if (output_file_path == NULL) {
             perror("Error asignando memoria");
@@ -482,11 +427,9 @@ void decompress_files(const char* compressed_file_path, const char* output_dir) 
 
         pid_t pid = fork();
         if (pid == -1) {
-            // Error al crear el proceso hijo
             perror("Error creando proceso hijo");
             exit(EXIT_FAILURE);
         } else if (pid == 0) {
-            // Proceso hijo
             FILE* output_file = fopen(output_file_path, "wb");
             if (!output_file) {
                 perror("Error abriendo el archivo de salida");
@@ -496,29 +439,22 @@ void decompress_files(const char* compressed_file_path, const char* output_dir) 
             decode_huffman(encoded_str, root, output_file);
             fclose(output_file);
 
-            // Liberar memoria en el proceso hijo
             free(file_name);
             free(encoded_str);
             free(output_file_path);
             free_huffman_tree(root);
 
-            // Terminar el proceso hijo
-            fclose(compressed_file); // El hijo cierra el archivo comprimido
+            fclose(compressed_file); 
             exit(EXIT_SUCCESS);
         } else {
-            // Proceso padre
             free(file_name);
             free(encoded_str);
             free(output_file_path);
             free_huffman_tree(root);
-
-            // Esperar a que el hijo termine si no quieres que los procesos corran completamente en paralelo
-            wait(NULL);
         }
     }
 
     fclose(compressed_file);
 
-    // Esperar a que todos los procesos hijos terminen si corren en paralelo
     while (wait(NULL) > 0);
 }

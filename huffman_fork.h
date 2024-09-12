@@ -51,12 +51,6 @@ void free_huffman_tree(huffman_node* root);
 // Lee el contenido de un archivo en memoria
 char* read_file(const char* file_path);
 
-// Escribe una cadena codificada en un archivo binario
-void write_binary_file(const char* file_path, const char* encoded_str);
-
-// Lee una cadena codificada desde un archivo binario
-char* read_binary_file(const char* file_path, size_t* length);
-
 // Escribe un árbol Huffman en un archivo
 void write_huffman_tree(FILE* file, huffman_node* root);
 

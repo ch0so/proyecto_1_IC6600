@@ -1,7 +1,0 @@
-# Notas para thread
-
-IMPORTANTE 
-
-DIVIDIR
-
-DIVIDIDO

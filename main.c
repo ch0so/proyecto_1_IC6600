@@ -12,7 +12,8 @@
 
 
 int main() {
-    
+    //const char* base_url = "https://www.gutenberg.org/browse/scores/top";
+    //download_text_files(base_url);
     const char *input_dir = "books_to_compress";
     const char *compressed_file_path = "compressed_books/compressed.bin";
     const char *decompressed_dir = "decompressed_books";

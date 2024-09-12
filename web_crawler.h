@@ -25,4 +25,6 @@ void extract_title_and_author(const char *filename, char **title, char **author)
 
 void process_link(CURL *curl, const char *url);
 
+void download_text_files(const char* base_url);
+
 #endif // WEB_CRAWLER_H

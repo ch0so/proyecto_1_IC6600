@@ -7,8 +7,6 @@
 #include <pthread.h>
 #include "huffman_fork.h"
 
-pthread_mutex_t file_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 int compare_nodes(const void* a, const void* b) {
     huffman_node* node_a = *(huffman_node**)a;
     huffman_node* node_b = *(huffman_node**)b;
@@ -301,7 +299,6 @@ void process_directory(const char* dir_path, const char* compressed_file_path) {
                 perror("Error creando proceso hijo");
                 exit(EXIT_FAILURE);
             } else if (pid == 0) {
-                // Proceso hijo
                 char* input_str = read_file(input_file_path);
 
                 int frequencies[256];
@@ -324,7 +321,6 @@ void process_directory(const char* dir_path, const char* compressed_file_path) {
                 size_t encoded_len;
                 encode_huffman(input_str, map, map_size, &encoded_str, &encoded_len);
 
-                pthread_mutex_lock(&file_mutex);
 
                 size_t name_len = strlen(entry->d_name);
                 fwrite(&name_len, sizeof(size_t), 1, compressed_file);
@@ -335,7 +331,6 @@ void process_directory(const char* dir_path, const char* compressed_file_path) {
                 fwrite(&encoded_len, sizeof(size_t), 1, compressed_file);
                 write_bits(compressed_file, encoded_str, encoded_len);
 
-                pthread_mutex_unlock(&file_mutex);
 
                 for (int i = 0; i < map_size; i++) {
                     free(map[i].code);
@@ -357,8 +352,6 @@ void process_directory(const char* dir_path, const char* compressed_file_path) {
     closedir(dir);
 
     fclose(compressed_file);
-
-    pthread_mutex_destroy(&file_mutex);
 }
 
 void read_bits(FILE* file, char* bits, size_t len) {
@@ -381,18 +374,7 @@ void read_bits(FILE* file, char* bits, size_t len) {
     }
 }
 
-void decompress_files(const char* compressed_file_path, const char* output_dir) {
-    FILE* compressed_file = fopen(compressed_file_path, "rb");
-    if (!compressed_file) {
-        perror("Error abriendo el archivo comprimido para lectura");
-        exit(EXIT_FAILURE);
-    }
-
-    struct stat st = {0};
-    if (stat(output_dir, &st) == -1) {
-        mkdir(output_dir, 0700);
-    }
-
+void process_file(FILE *compressed_file, const char *output_dir) {
     while (1) {
         size_t name_len;
         if (fread(&name_len, sizeof(size_t), 1, compressed_file) != 1) break;
@@ -417,44 +399,79 @@ void decompress_files(const char* compressed_file_path, const char* output_dir) 
         encoded_str[encoded_len] = '\0';
         read_bits(compressed_file, encoded_str, encoded_len);
 
-        size_t path_len = strlen(output_dir) + strlen(file_name) + 2;
+        size_t path_len = strlen(output_dir) + strlen(file_name) + 2; 
         char* output_file_path = (char*)malloc(path_len);
         if (output_file_path == NULL) {
             perror("Error asignando memoria");
             exit(EXIT_FAILURE);
         }
         snprintf(output_file_path, path_len, "%s/%s", output_dir, file_name);
+        FILE* output_file = fopen(output_file_path, "wb");
+        if (!output_file) {
+            perror("Error abriendo el archivo de salida");
+            exit(EXIT_FAILURE);
+        }
+
+        decode_huffman(encoded_str, root, output_file);
+        fclose(output_file);
+
+        free(file_name);
+        free(encoded_str);
+        free(output_file_path);
+        free_huffman_tree(root);
+    }
+}
+
+void worker(const char *compressed_file_name, const char *output_dir) {
+    FILE *compressed_file = fopen(compressed_file_name, "rb");
+    if (!compressed_file) {
+        perror("Error abriendo el archivo comprimido");
+        exit(EXIT_FAILURE);
+    }
+
+    process_file(compressed_file, output_dir);
+    fclose(compressed_file);
+    exit(EXIT_SUCCESS);
+}
+
+void decompress_files(const char* compressed_file_path, const char* output_dir) {
+    FILE* compressed_file = fopen(compressed_file_path, "rb");
+    if (!compressed_file) {
+        perror("Error abriendo el archivo comprimido para lectura");
+        exit(EXIT_FAILURE);
+    }
+
+    struct stat st = {0};
+    if (stat(output_dir, &st) == -1) {
+        mkdir(output_dir, 0700);
+    }
+
+    while (1) {
+        size_t name_len;
+        if (fread(&name_len, sizeof(size_t), 1, compressed_file) != 1) break;
+
+        fseek(compressed_file, -sizeof(size_t), SEEK_CUR);
 
         pid_t pid = fork();
-        if (pid == -1) {
-            perror("Error creando proceso hijo");
+        if (pid < 0) {
+            perror("Error en fork");
             exit(EXIT_FAILURE);
         } else if (pid == 0) {
-            FILE* output_file = fopen(output_file_path, "wb");
-            if (!output_file) {
-                perror("Error abriendo el archivo de salida");
+            FILE *file_in_child = fopen(compressed_file_path, "rb");
+            if (!file_in_child) {
+                perror("Error abriendo el archivo comprimido en el proceso hijo");
                 exit(EXIT_FAILURE);
             }
-
-            decode_huffman(encoded_str, root, output_file);
-            fclose(output_file);
-
-            free(file_name);
-            free(encoded_str);
-            free(output_file_path);
-            free_huffman_tree(root);
-
-            fclose(compressed_file); 
+            process_file(file_in_child, output_dir);
+            fclose(file_in_child);
             exit(EXIT_SUCCESS);
         } else {
-            free(file_name);
-            free(encoded_str);
-            free(output_file_path);
-            free_huffman_tree(root);
+            fseek(compressed_file, name_len + sizeof(size_t) + sizeof(size_t), SEEK_CUR);
         }
     }
 
-    fclose(compressed_file);
+    int status;
+    while (wait(&status) > 0);
 
-    while (wait(NULL) > 0);
+    fclose(compressed_file);
 }

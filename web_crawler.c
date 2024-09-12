@@ -22,7 +22,7 @@ void extract_links_from_html(const char *html) {
     TidyDoc doc = tidyCreate();
     TidyBuffer buffer = {0};
     tidyBufInit(&buffer);
-    
+
     tidyParseString(doc, html);
     tidyCleanAndRepair(doc);
     tidySaveBuffer(doc, &buffer);
@@ -35,7 +35,7 @@ void extract_links_from_html(const char *html) {
     const char *pattern_h2 = "<h2 id=\"books-last30\">";
     const char *pattern_ol = "<ol>";
     const char *pattern_a = "<a href=\"([^\"]+)\">";
-    
+
     regcomp(&regex_h2, pattern_h2, REG_EXTENDED);
     regcomp(&regex_ol, pattern_ol, REG_EXTENDED);
     regcomp(&regex_a, pattern_a, REG_EXTENDED);
@@ -211,13 +211,13 @@ void process_link(CURL *curl_handle, const char *url) {
     }
 
     free(response_chunk.data);
-}
+} 
 
 void download_text_files(const char* base_url) {
     CURL *curl;
     CURLcode res;
     memory_data chunk;
-    
+
     chunk.data = malloc(1);  
     chunk.size = 0;          
 

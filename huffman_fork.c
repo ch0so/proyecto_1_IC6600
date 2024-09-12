@@ -1,11 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
+#include <sys/types.h>
 #include <sys/wait.h>
+#include <unistd.h>
 #include <dirent.h>
-#include <pthread.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include "huffman_fork.h"
+#define TEMP_FILE_PREFIX "tempfile_"
+#define INITIAL_CAPACITY 256
 
 int compare_nodes(const void* a, const void* b) {
     huffman_node* node_a = *(huffman_node**)a;
@@ -268,11 +272,99 @@ void write_bits(FILE* file, const char* bits, size_t len) {
     }
 }
 
+void process_file(const char* input_file_path, const char* temp_file_path) {
+    FILE* temp_file = fopen(temp_file_path, "wb");
+    if (!temp_file) {
+        perror("Error abriendo el archivo temporal para escritura");
+        exit(EXIT_FAILURE);
+    }
+
+    char* input_str = read_file(input_file_path);
+
+    int frequencies[256];
+    char unique_characters[256];
+    int unique_count;
+    count_frequencies(input_str, frequencies, unique_characters, &unique_count);
+
+    huffman_node* nodes[256];
+    for (int i = 0; i < unique_count; i++) {
+        nodes[i] = create_node(unique_characters[i], frequencies[i]);
+    }
+
+    huffman_node* root = build_huffman_tree(unique_count, nodes);
+
+    code_map map[256];
+    int map_size;
+    create_code_map(root, map, &map_size);
+
+    char* encoded_str;
+    size_t encoded_len;
+    encode_huffman(input_str, map, map_size, &encoded_str, &encoded_len);
+
+    size_t name_len = strlen(input_file_path);
+    const char* file_name = strrchr(input_file_path, '/');
+    file_name = (file_name != NULL) ? file_name + 1 : input_file_path; 
+    name_len = strlen(file_name); 
+
+    fwrite(&name_len, sizeof(size_t), 1, temp_file);
+    fwrite(file_name, sizeof(char), name_len, temp_file);
+
+    write_huffman_tree(temp_file, root);
+
+    fwrite(&encoded_len, sizeof(size_t), 1, temp_file);
+    write_bits(temp_file, encoded_str, encoded_len);
+
+    for (int i = 0; i < map_size; i++) {
+        free(map[i].code);
+    }
+    free(input_str);
+    free(encoded_str);
+    free_huffman_tree(root);
+    fclose(temp_file);
+}
+
 void process_directory(const char* dir_path, const char* compressed_file_path) {
     DIR* dir = opendir(dir_path);
     if (dir == NULL) {
         perror("Error abriendo el directorio");
         exit(EXIT_FAILURE);
+    }
+
+    struct dirent* entry;
+    char* file_names[256]; 
+    int file_count = 0;
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_type == DT_REG) { 
+            size_t path_len = strlen(dir_path) + strlen(entry->d_name) + 2; 
+            file_names[file_count] = (char*)malloc(path_len);
+            if (file_names[file_count] == NULL) {
+                perror("Error asignando memoria");
+                exit(EXIT_FAILURE);
+            }
+            snprintf(file_names[file_count], path_len, "%s/%s", dir_path, entry->d_name);
+            file_count++;
+        }
+    }
+    closedir(dir);
+
+    int status;
+    for (int i = 0; i < file_count; i++) {
+        pid_t pid = fork();
+        if (pid == -1) {
+            perror("Error en fork");
+            exit(EXIT_FAILURE);
+        } else if (pid == 0) { 
+            char temp_file_path[256];
+            snprintf(temp_file_path, sizeof(temp_file_path), "%s_%d", TEMP_FILE_PREFIX, i);
+            process_file(file_names[i], temp_file_path);
+            free(file_names[i]);
+            exit(EXIT_SUCCESS);
+        }
+    }
+
+    for (int i = 0; i < file_count; i++) {
+        wait(&status);
     }
 
     FILE* compressed_file = fopen(compressed_file_path, "wb");
@@ -281,77 +373,31 @@ void process_directory(const char* dir_path, const char* compressed_file_path) {
         exit(EXIT_FAILURE);
     }
 
-    struct dirent* entry;
+    for (int i = 0; i < file_count; i++) {
+        char temp_file_path[256];
+        snprintf(temp_file_path, sizeof(temp_file_path), "%s_%d", TEMP_FILE_PREFIX, i);
 
-    while ((entry = readdir(dir)) != NULL) {
-        if (entry->d_type == DT_REG) {
-            size_t path_len = strlen(dir_path) + strlen(entry->d_name) + 2;
-            char* input_file_path = (char*)malloc(path_len);
-            if (input_file_path == NULL) {
-                perror("Error asignando memoria");
-                exit(EXIT_FAILURE);
-            }
-            snprintf(input_file_path, path_len, "%s/%s", dir_path, entry->d_name);
-
-            pid_t pid = fork();
-
-            if (pid == -1) {
-                perror("Error creando proceso hijo");
-                exit(EXIT_FAILURE);
-            } else if (pid == 0) {
-                char* input_str = read_file(input_file_path);
-
-                int frequencies[256];
-                char unique_characters[256];
-                int unique_count;
-                count_frequencies(input_str, frequencies, unique_characters, &unique_count);
-
-                huffman_node* nodes[256];
-                for (int i = 0; i < unique_count; i++) {
-                    nodes[i] = create_node(unique_characters[i], frequencies[i]);
-                }
-
-                huffman_node* root = build_huffman_tree(unique_count, nodes);
-
-                code_map map[256];
-                int map_size;
-                create_code_map(root, map, &map_size);
-
-                char* encoded_str;
-                size_t encoded_len;
-                encode_huffman(input_str, map, map_size, &encoded_str, &encoded_len);
-
-
-                size_t name_len = strlen(entry->d_name);
-                fwrite(&name_len, sizeof(size_t), 1, compressed_file);
-                fwrite(entry->d_name, sizeof(char), name_len, compressed_file);
-
-                write_huffman_tree(compressed_file, root);
-
-                fwrite(&encoded_len, sizeof(size_t), 1, compressed_file);
-                write_bits(compressed_file, encoded_str, encoded_len);
-
-
-                for (int i = 0; i < map_size; i++) {
-                    free(map[i].code);
-                }
-                free(input_str);
-                free(encoded_str);
-                free_huffman_tree(root);
-                free(input_file_path);
-
-                fclose(compressed_file);  
-                exit(EXIT_SUCCESS);
-            } else {
-                free(input_file_path);
-                wait(NULL);
-            }
+        FILE* temp_file = fopen(temp_file_path, "rb");
+        if (!temp_file) {
+            perror("Error abriendo el archivo temporal para lectura");
+            exit(EXIT_FAILURE);
         }
+
+        char buffer[1024];
+        size_t bytes;
+        while ((bytes = fread(buffer, 1, sizeof(buffer), temp_file)) > 0) {
+            fwrite(buffer, 1, bytes, compressed_file);
+        }
+
+        fclose(temp_file);
+        remove(temp_file_path);
     }
 
-    closedir(dir);
-
     fclose(compressed_file);
+
+    for (int i = 0; i < file_count; i++) {
+        free(file_names[i]);
+    }
 }
 
 void read_bits(FILE* file, char* bits, size_t len) {
@@ -373,8 +419,102 @@ void read_bits(FILE* file, char* bits, size_t len) {
         }
     }
 }
+/*
+long find_file_position(FILE *compressed_file, const char *file_name) {
+    fseek(compressed_file, 0, SEEK_SET); 
 
-void process_file(FILE *compressed_file, const char *output_dir) {
+    while (1) {
+        size_t name_len;
+        if (fread(&name_len, sizeof(size_t), 1, compressed_file) != 1) {
+            return -1; 
+        }
+
+        char *current_file_name = (char *)malloc(name_len + 1);
+        if (current_file_name == NULL) {
+            perror("Error asignando memoria");
+            exit(EXIT_FAILURE);
+        }
+        fread(current_file_name, sizeof(char), name_len, compressed_file);
+        current_file_name[name_len] = '\0';
+
+        if (strcmp(current_file_name, file_name) == 0) {
+            long position = ftell(compressed_file); 
+            free(current_file_name);
+            return position;
+        }
+
+        free(current_file_name);
+
+        huffman_node *root = read_huffman_tree(compressed_file);
+        size_t encoded_len;
+        fread(&encoded_len, sizeof(size_t), 1, compressed_file);
+        fseek(compressed_file, encoded_len + (encoded_len % 8 == 0 ? 0 : 1), SEEK_CUR);
+        free_huffman_tree(root);
+    }
+}
+
+void decompress_file(const char* compressed_file_path, const char* file_name, const char* output_file_path) {
+    FILE* compressed_file = fopen(compressed_file_path, "rb");
+    if (!compressed_file) {
+        perror("Error abriendo el archivo comprimido para lectura");
+        exit(EXIT_FAILURE);
+    }
+
+    long position = find_file_position(compressed_file, file_name);
+    if (position < 0) {
+        fprintf(stderr, "Error: archivo '%s' no encontrado en el archivo comprimido.\n", file_name);
+        fclose(compressed_file);
+        exit(EXIT_FAILURE);
+    }
+
+    fseek(compressed_file, position, SEEK_SET);
+
+    huffman_node* root = read_huffman_tree(compressed_file);
+
+    size_t encoded_len;
+    fread(&encoded_len, sizeof(size_t), 1, compressed_file);
+    char* encoded_str = (char*)malloc(encoded_len + 1);
+    if (encoded_str == NULL) {
+        perror("Error asignando memoria");
+        exit(EXIT_FAILURE);
+    }
+    read_bits(compressed_file, encoded_str, encoded_len);
+    encoded_str[encoded_len] = '\0';
+
+    FILE* output_file = fopen(output_file_path, "wb");
+    if (!output_file) {
+        perror("Error abriendo el archivo de salida");
+        exit(EXIT_FAILURE);
+    }
+
+    decode_huffman(encoded_str, root, output_file);
+
+    fclose(output_file);
+    fclose(compressed_file);
+    free(encoded_str);
+    free_huffman_tree(root);
+}
+
+void decompress_files(const char* compressed_file_path, const char* output_dir) {
+    FILE* compressed_file = fopen(compressed_file_path, "rb");
+    if (!compressed_file) {
+        perror("Error abriendo el archivo comprimido para lectura");
+        exit(EXIT_FAILURE);
+    }
+
+    char** output_file_paths = (char**)malloc(INITIAL_CAPACITY * sizeof(size_t));
+    if (!output_file_paths) {
+        perror("Error asignando memoria para las posiciones de los archivos");
+        exit(EXIT_FAILURE);
+    }
+
+    char** output_files = (char**)malloc(INITIAL_CAPACITY * sizeof(char*));
+    if (!output_files) {
+        perror("Error asignando memoria para los nombres de archivos");
+        exit(EXIT_FAILURE);
+    }
+
+    size_t output_file_count = 0;
     while (1) {
         size_t name_len;
         if (fread(&name_len, sizeof(size_t), 1, compressed_file) != 1) break;
@@ -386,6 +526,8 @@ void process_file(FILE *compressed_file, const char *output_dir) {
         }
         fread(file_name, sizeof(char), name_len, compressed_file);
         file_name[name_len] = '\0';
+
+        output_files[output_file_count] = file_name;
 
         huffman_node* root = read_huffman_tree(compressed_file);
 
@@ -399,67 +541,34 @@ void process_file(FILE *compressed_file, const char *output_dir) {
         encoded_str[encoded_len] = '\0';
         read_bits(compressed_file, encoded_str, encoded_len);
 
-        size_t path_len = strlen(output_dir) + strlen(file_name) + 2; 
-        char* output_file_path = (char*)malloc(path_len);
-        if (output_file_path == NULL) {
-            perror("Error asignando memoria");
-            exit(EXIT_FAILURE);
-        }
-        snprintf(output_file_path, path_len, "%s/%s", output_dir, file_name);
-        FILE* output_file = fopen(output_file_path, "wb");
-        if (!output_file) {
-            perror("Error abriendo el archivo de salida");
-            exit(EXIT_FAILURE);
-        }
-
-        decode_huffman(encoded_str, root, output_file);
-        fclose(output_file);
+        output_file_paths[output_file_count] = file_name;
+        output_file_count++;
 
         free(file_name);
         free(encoded_str);
-        free(output_file_path);
         free_huffman_tree(root);
     }
-}
+    fclose(compressed_file);
 
-void decompress_files(const char* compressed_file_path, const char* output_dir) {
-    FILE* compressed_file = fopen(compressed_file_path, "rb");
-    if (!compressed_file) {
-        perror("Error abriendo el archivo comprimido para lectura");
-        exit(EXIT_FAILURE);
-    }
-
-    struct stat st = {0};
-    if (stat(output_dir, &st) == -1) {
-        mkdir(output_dir, 0700);
-    }
-
-    while (1) {
-        size_t name_len;
-        if (fread(&name_len, sizeof(size_t), 1, compressed_file) != 1) break;
-
-        fseek(compressed_file, -sizeof(size_t), SEEK_CUR);
-
+    for (size_t i = 0; i < output_file_count; ++i) {
         pid_t pid = fork();
-        if (pid < 0) {
-            perror("Error en fork");
-            exit(EXIT_FAILURE);
-        } else if (pid == 0) {
-            FILE *file_in_child = fopen(compressed_file_path, "rb");
-            if (!file_in_child) {
-                perror("Error abriendo el archivo comprimido en el proceso hijo");
-                exit(EXIT_FAILURE);
-            }
-            process_file(file_in_child, output_dir);
-            fclose(file_in_child);
+        if (pid == 0) {
+            decompress_file(compressed_file_path, output_file_paths[i], output_files[i]);
             exit(EXIT_SUCCESS);
-        } else {
-            fseek(compressed_file, name_len + sizeof(size_t) + sizeof(size_t), SEEK_CUR);
+        } else if (pid < 0) {
+            perror("Error al crear proceso hijo");
+            exit(EXIT_FAILURE);
         }
     }
 
-    int status;
-    while (wait(&status) > 0);
+    for (size_t i = 0; i < output_file_count; ++i) {
+        wait(NULL);
+    }
 
-    fclose(compressed_file);
-}
+    for (size_t i = 0; i < output_file_count; ++i) {
+        free(output_files[i]);
+    }
+    free(output_files);
+    free(output_file_paths);
+    
+}*/

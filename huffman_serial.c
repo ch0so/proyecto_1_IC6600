@@ -183,40 +183,6 @@ char* read_file(const char* file_path) {
 }
 
 
-char* read_binary_file(const char* file_path, size_t* length) {
-    FILE* file = fopen(file_path, "rb");
-    if (!file) {
-        perror("Error abriendo el archivo");
-        exit(EXIT_FAILURE);
-    }
-
-    fseek(file, 0, SEEK_END);
-    size_t file_size = ftell(file);
-    rewind(file);
-
-    *length = file_size * 8;
-    char* buffer = (char*)malloc(*length + 1);
-    if (!buffer) {
-        perror("Error asignando memoria");
-        fclose(file);
-        exit(EXIT_FAILURE);
-    }
-
-    unsigned char byte;
-    size_t bit_index = 0;
-
-    while (fread(&byte, sizeof(unsigned char), 1, file) == 1) {
-        for (int bit_position = 7; bit_position >= 0; --bit_position) {
-            buffer[bit_index++] = (byte & (1 << bit_position)) ? '1' : '0';
-        }
-    }
-
-    buffer[*length] = '\0';
-
-    fclose(file);
-    return buffer;
-}
-
 void write_huffman_tree(FILE* file, huffman_node* root) {
     if (root == NULL) {
         fputc(0, file);

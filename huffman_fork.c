@@ -420,52 +420,14 @@ void read_bits(FILE* file, char* bits, size_t len) {
     }
 }
 
-long find_file_position(FILE *compressed_file, const char *file_name) {
-    fseek(compressed_file, 0, SEEK_SET); 
 
-    while (1) {
-        size_t name_len;
-        if (fread(&name_len, sizeof(size_t), 1, compressed_file) != 1) {
-            return -1; 
-        }
 
-        char *current_file_name = (char *)malloc(name_len + 1);
-        if (current_file_name == NULL) {
-            perror("Error asignando memoria");
-            exit(EXIT_FAILURE);
-        }
-        fread(current_file_name, sizeof(char), name_len, compressed_file);
-        current_file_name[name_len] = '\0';
-
-        if (strcmp(current_file_name, file_name) == 0) {
-            long position = ftell(compressed_file); 
-            free(current_file_name);
-            return position;
-        }
-
-        free(current_file_name);
-
-        huffman_node *root = read_huffman_tree(compressed_file);
-        size_t encoded_len;
-        fread(&encoded_len, sizeof(size_t), 1, compressed_file);
-        fseek(compressed_file, encoded_len + (encoded_len % 8 == 0 ? 0 : 1), SEEK_CUR);
-        free_huffman_tree(root);
-    }
-}
-
-void decompress_file(const char* compressed_file_path, const char* file_name, const char* output_file_path) {
+void decompress_file(const char* compressed_file_path, const char* file_name, const char* output_file_path, long long int position) {
     FILE* compressed_file = fopen(compressed_file_path, "rb");
     if (!compressed_file) {
         perror("Error abriendo el archivo comprimido para lectura");
         exit(EXIT_FAILURE);
     }
-    long position = find_file_position(compressed_file, file_name);
-    if (position < 0) {
-        fprintf(stderr, "Error: archivo '%s' no encontrado en el archivo comprimido.\n", file_name);
-        fclose(compressed_file);
-        exit(EXIT_FAILURE);
-    }
-
     fseek(compressed_file, position, SEEK_SET);
 
     huffman_node* root = read_huffman_tree(compressed_file);
@@ -494,6 +456,7 @@ void decompress_file(const char* compressed_file_path, const char* file_name, co
     free_huffman_tree(root);
 }
 
+
 void decompress_files(const char* compressed_file_path, const char* output_dir) {
     FILE* compressed_file = fopen(compressed_file_path, "rb");
     if (!compressed_file) {
@@ -513,6 +476,12 @@ void decompress_files(const char* compressed_file_path, const char* output_dir) 
         exit(EXIT_FAILURE);
     }
 
+    long long int* output_integers = (long long int*)malloc(INITIAL_CAPACITY * sizeof(long long int));
+    if (!output_integers) {
+        perror("Error asignando memoria para los enteros largos");
+        exit(EXIT_FAILURE);
+    }
+
     size_t output_file_count = 0;
     while (1) {
         size_t name_len;
@@ -526,6 +495,7 @@ void decompress_files(const char* compressed_file_path, const char* output_dir) 
         fread(file_name, sizeof(char), name_len, compressed_file);
         file_name[name_len] = '\0';
         output_files[output_file_count] = file_name;
+        output_integers[output_file_count] = ftell(compressed_file);  
 
         huffman_node* root = read_huffman_tree(compressed_file);
 
@@ -538,28 +508,42 @@ void decompress_files(const char* compressed_file_path, const char* output_dir) 
         }
         encoded_str[encoded_len] = '\0';
         read_bits(compressed_file, encoded_str, encoded_len);
-
-        output_file_paths[output_file_count] = file_name;
+        size_t path_len = strlen(output_dir) + strlen(file_name) + 2; 
+        char* output_file_path = (char*)malloc(path_len);
+        if (output_file_path == NULL) {
+            perror("Error asignando memoria");
+            exit(EXIT_FAILURE);
+        }
+        snprintf(output_file_path, path_len, "%s/%s", output_dir, file_name);
+        output_file_paths[output_file_count] = output_file_path;
         output_file_count++;
 
-        free(file_name);
         free(encoded_str);
         free_huffman_tree(root);
     }
     fclose(compressed_file);
 
-    for (size_t i = 0; i < output_file_count; ++i) {
-        /*
+    for (size_t i = 0; i < output_file_count; ++i) {        
         pid_t pid = fork();
         if (pid == 0) {
-            decompress_file(compressed_file_path, output_files[i], output_file_paths[i]);
+            decompress_file(compressed_file_path, output_files[i], output_file_paths[i], output_integers[i]);
+            exit(EXIT_SUCCESS);
         } else if (pid < 0) {
             perror("Error al crear proceso hijo");
-        }*/
+            exit(EXIT_FAILURE);
+        }
     }
 
     for (size_t i = 0; i < output_file_count; ++i) {
         wait(NULL);
     }
-    
+
+    for (size_t i = 0; i < output_file_count; ++i) {
+        free(output_files[i]);
+        free(output_file_paths[i]);
+    }
+
+    free(output_files);
+    free(output_file_paths);
+    free(output_integers);
 }

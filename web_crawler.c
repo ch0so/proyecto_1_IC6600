@@ -1,6 +1,45 @@
+/*
+Código creado por:
+    Ávila Ramírez Paublo Alexander
+    pavila@estudiantec.cr
+    2022035584
+    
+    Reyes Rodríguez	Ricardo Andrés
+    rireyes@estudiantec.cr
+    2022101681
+
+	Zúñiga Campos Omar Jesús
+    omzuniga@estudiantec.cr
+    2022019053
+
+Aclaración:
+- Se coloca la referencia al proyecto gutenberg debido a que de este web crawler fue hecho para usarse en dicho sitio. Además que los libros son extraídos de ahí.
+
+Referencias bibliográficas:
+    -Gutenberg, P. (s.f.). Proyecto Gutenberg. Proyecto Gutenberg. https://www.gutenberg.org/
+    -TidyLib. (1 de marzo, 2017). tidybuffio.h [Documentación de la API]. TidyLib. https://api.html-tidy.org/tidy/tidylib_api_5.4.0/tidybuffio_8h.html
+    -ZenRows. (2024, 1 junio). Web scraping with C in 2024 [Raspado WEB con C en 2024]. ZenRows. https://www.zenrows.com/blog/web-scraping-c#get-the-html
+*/
+
 #include "web_crawler.h"
 
 size_t write_memory_callback(void *contents, size_t size, size_t number_of_members, void *user_pointer) {
+    /*
+        Función que escribe datos en memoria durante una transferencia de CURL
+
+        Entradas:
+        - contents: Puntero a los datos a escribir
+        - size: Tamaño de cada elemento de datos
+        - number_of_members: Número de elementos de datos
+        - user_pointer: Puntero a una estructura de datos en memoria que se debe actualizar
+
+        Salidas:
+        - real_size: Número de bytes realmente escritos
+
+        Restricciones:
+        - La variable contents no debe ser NULL
+        - La variable user_pointer debe apuntar a una estructura de tipo memory_data válida
+    */
     size_t real_size = size * number_of_members;
     memory_data *memory = (memory_data *)user_pointer;
 
@@ -19,6 +58,18 @@ size_t write_memory_callback(void *contents, size_t size, size_t number_of_membe
 }
 
 void extract_links_from_html(const char *html) {
+    /*
+        Función que extrae enlaces de una cadena HTML y los guarda en un archivo
+
+        Entradas:
+        - html: Cadena que contiene el contenido HTML del que se extraen los enlaces
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable html no debe ser NULL
+    */
     TidyDoc doc = tidyCreate();
     TidyBuffer buffer = {0};
     tidyBufInit(&buffer);
@@ -80,6 +131,19 @@ void extract_links_from_html(const char *html) {
 }
 
 char *find_link(const char *html) {
+    /*
+        Función que encuentra un enlace en una cadena HTML que coincida con un patrón específico
+
+        Entradas:
+        - html: Cadena que contiene el contenido HTML donde se buscará el enlace
+
+        Salidas:
+        - link: Cadena que contiene el enlace encontrado. NULL si no se encuentra ningún enlace
+
+        Restricciones:
+        - La variable html no debe ser NULL
+        - El patrón de búsqueda debe ser válido
+    */
     regex_t regex;
     regmatch_t matches[2];
     const char *pattern = "href=\"(/ebooks/[^\"]+\\.txt\\.utf-8)\"";
@@ -104,6 +168,22 @@ char *find_link(const char *html) {
 }
 
 void extract_title_and_author(const char *filename, char **title, char **author) {
+    /*
+        Función que extrae el título y el autor de un archivo de texto y los guarda en las variables proporcionadas
+
+        Entradas:
+        - filename: Nombre del archivo de texto del cual se extraerá el título y el autor
+        - title: Puntero a una variable que recibirá el título del libro
+        - author: Puntero a una variable que recibirá el nombre del autor
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable filename no debe ser NULL
+        - Los punteros title y author deben ser inicializados en NULL
+        - El archivo debe tener formato esperado con campos "Title:", "Author:", "Translator:", o "Editor:"
+    */
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
         perror("Error abriendo archivo para extraer título y autor");
@@ -150,6 +230,18 @@ void extract_title_and_author(const char *filename, char **title, char **author)
 }
 
 char *generate_unique_filename(const char *base_path) {
+    /*
+        Función que genera un nombre de archivo único basado en un nombre base
+
+        Entradas:
+        - base_path: Cadena que contiene la ruta base para el nombre del archivo
+
+        Salidas:
+        - unique_path: Cadena que contiene un nombre de archivo único generado
+
+        Restricciones:
+        - La variable base_path no debe ser NULL
+    */
     char *unique_path = NULL;
     char buffer[256];
     int counter = 1;
@@ -170,6 +262,20 @@ char *generate_unique_filename(const char *base_path) {
 }
 
 void process_link(CURL *curl_handle, const char *url) {
+    /*
+        Función que procesa un enlace utilizando CURL para descargar datos y luego los procesa
+
+        Entradas:
+        - curl_handle: Manejador de CURL ya inicializado
+        - url: Cadena que contiene la URL del enlace a procesar
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable curl_handle debe ser un manejador de CURL válido
+        - La variable url no debe ser NULL
+    */
     CURLcode curl_status;
     memory_data response_chunk;
     response_chunk.data = malloc(1);
@@ -251,6 +357,18 @@ void process_link(CURL *curl_handle, const char *url) {
 }
 
 int remove_directory(const char *dir_path) {
+    /*
+        Función que elimina un directorio y su contenido de forma recursiva
+
+        Entradas:
+        - dir_path: Cadena que contiene la ruta del directorio a eliminar
+
+        Salidas:
+        - 0 si la eliminación fue exitosa, -1 en caso de error
+
+        Restricciones:
+        - La variable dir_path no debe ser NULL
+    */
     DIR *dir = opendir(dir_path);
     if (!dir) {
         perror("Error abriendo directorio para eliminar");
@@ -292,6 +410,18 @@ int remove_directory(const char *dir_path) {
 }
 
 void download_text_files(const char* base_url) {
+    /*
+        Función que descarga archivos de texto desde una URL base y los procesa
+
+        Entradas:
+        - base_url: Cadena que contiene la URL base desde donde se descargarán los archivos
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable base_url no debe ser NULL
+    */
     CURL *curl;
     CURLcode res;
     memory_data chunk;
@@ -300,7 +430,7 @@ void download_text_files(const char* base_url) {
     chunk.size = 0;      
 
     remove("links.txt");    
-    
+
     const char *directory = "books_to_compress";
     struct stat dir_stat = {0};
 

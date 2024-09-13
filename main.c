@@ -10,17 +10,15 @@
 #include "web_crawler.h"
 #include "huffman_fork.h"
 
-
-
 int main() {
-    const char* base_url = "https://www.gutenberg.org/browse/scores/top";
+    //const char* base_url = "https://www.gutenberg.org/browse/scores/top";
     const char *input_dir = "books_to_compress";
     const char *compressed_file_dir = "compressed_books";
     const char *compressed_file_path = "compressed_books/compressed.bin";
     const char *decompressed_dir = "decompressed_books";
 
 
-    download_text_files(base_url);
+    //download_text_files(base_url);
     struct stat dir_stat = {0};
 
     if (stat(compressed_file_dir, &dir_stat) == -1) {
@@ -39,7 +37,8 @@ int main() {
 
     mkdir(decompressed_dir, 0700);
 
-    //process_directory(input_dir, compressed_file_path);
-    //decompress_files(compressed_file_path, decompressed_dir);
+    compress_files_fork(input_dir, compressed_file_path);
+    decompress_files_fork(compressed_file_path, decompressed_dir);
+
     return 0;
 }

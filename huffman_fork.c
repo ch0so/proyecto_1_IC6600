@@ -1,23 +1,52 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#include <dirent.h>
-#include <string.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include "huffman_fork.h"
-#define TEMP_FILE_PREFIX "tempfile_"
-#define INITIAL_CAPACITY 256
+/*
+Código creado por:
+    Ávila Ramírez Paublo Alexander
+    pavila@estudiantec.cr
+    2022035584
+    
+    Reyes Rodríguez	Ricardo Andrés
+    rireyes@estudiantec.cr
+    2022101681
 
-int compare_nodes(const void* a, const void* b) {
-    huffman_node* node_a = *(huffman_node**)a;
-    huffman_node* node_b = *(huffman_node**)b;
+	Zúñiga Campos Omar Jesús
+    omzuniga@estudiantec.cr
+    2022019053
+
+Referencias bibliográficas:
+    -GeeksforGeeks. (2023a, abril 7). Huffman Decoding [Decodificación de Huffman]. GeeksforGeeks. https://www.geeksforgeeks.org/huffman-decoding/ 
+    -GeeksforGeeks. (2023b, setiembre 11). Huffman Coding [Codificación de Huffman]. GeeksforGeeks. https://www.geeksforgeeks.org/huffman-coding-greedy-algo-3/ 
+    -Hu, J. (2023, 12 octubre). Usa la función fork en C. Delft Stack. https://www.delftstack.com/es/howto/c/fork-in-c/
+*/
+
+#include "huffman_fork.h"
+
+int compare_nodes_fork(const void* first_node, const void* second_node) {
+    /*
+        Función que compara dos nodos de Huffman en función de su frecuencia
+
+        Entradas:
+        - first_node: Puntero al primer nodo de Huffman
+        - second_node: Puntero al segundo nodo de Huffman
+
+        Salidas:
+        - Diferencia entre las frecuencias de los nodos
+    */
+    huffman_node* node_a = *(huffman_node**)first_node;
+    huffman_node* node_b = *(huffman_node**)second_node;
     return node_a->frequency - node_b->frequency;
 }
 
-huffman_node* create_node(char character, int frequency) {
+huffman_node* create_node_fork(char character, int frequency) {
+    /*
+        Función que crea un nuevo nodo de Huffman
+
+        Entradas:
+        - character: Carácter del nodo
+        - frequency: Frecuencia del carácter en el texto
+
+        Salidas:
+        - Puntero al nuevo nodo de Huffman
+    */
     huffman_node* node = (huffman_node*)malloc(sizeof(huffman_node));
     node->character = character;
     node->frequency = frequency;
@@ -26,13 +55,31 @@ huffman_node* create_node(char character, int frequency) {
     return node;
 }
 
-void count_frequencies(const char* str, int* frequencies, char* unique_characters, int* unique_count) {
-    int count[256] = {0};
-    const char* ptr = str;
+void count_frequencies_fork(const char* string, int* frequencies, char* unique_characters, int* unique_count) {
+    /*
+        Función que cuenta las frecuencias de los caracteres en una cadena de texto
 
-    while (*ptr) {
-        count[(unsigned char)*ptr]++;
-        ptr++;
+        Entradas:
+        - string: Cadena de texto
+        - frequencies: Array para almacenar las frecuencias de cada carácter
+        - unique_characters: Array para almacenar los caracteres únicos encontrados
+        - unique_count: Puntero para almacenar el número de caracteres únicos encontrados
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable string no debe ser NULL
+        - La variable frequencies no debe ser NULL
+        - La variable unique_characters no debe ser NULL
+        - La variable unique_count no debe ser NULL
+    */
+    int count[256] = {0};
+    const char* pointer = string;
+
+    while (*pointer) {
+        count[(unsigned char)*pointer]++;
+        pointer++;
     }
 
     *unique_count = 0;
@@ -45,14 +92,27 @@ void count_frequencies(const char* str, int* frequencies, char* unique_character
     }
 }
 
-huffman_node* build_huffman_tree(int node_count, huffman_node** nodes) {
-    qsort(nodes, node_count, sizeof(huffman_node*), compare_nodes);
+huffman_node* build_huffman_tree_fork(int node_count, huffman_node** nodes) {
+    /*
+        Función que construye un árbol de Huffman a partir de una lista de nodos
+
+        Entradas:
+        - node_count: Número de nodos en la lista
+        - nodes: Array de punteros a nodos de Huffman
+
+        Salidas:
+        - Puntero a la raíz del árbol de Huffman
+
+        Restricciones:
+        - La variable nodes no debe ser NULL
+    */
+    qsort(nodes, node_count, sizeof(huffman_node*), compare_nodes_fork);
 
     while (node_count > 1) {
         huffman_node* left = nodes[0];
         huffman_node* right = nodes[1];
 
-        huffman_node* parent = create_node('-', left->frequency + right->frequency);
+        huffman_node* parent = create_node_fork('-', left->frequency + right->frequency);
         parent->left = left;
         parent->right = right;
 
@@ -62,13 +122,32 @@ huffman_node* build_huffman_tree(int node_count, huffman_node** nodes) {
         nodes[node_count - 2] = parent;
 
         node_count--;
-        qsort(nodes, node_count, sizeof(huffman_node*), compare_nodes);
+        qsort(nodes, node_count, sizeof(huffman_node*), compare_nodes_fork);
     }
 
     return nodes[0];
 }
 
-void encode_huffman(const char* str, code_map* map, int map_size, char** encoded_str, size_t* encoded_len) {
+void encode_huffman_fork(const char* string_to_encode, code_map* map, int map_size, char** encoded_str, size_t* encoded_len) {
+    /*
+        Función que codifica una cadena de texto usando un mapa de códigos de Huffman
+
+        Entradas:
+        - string_to_encode: Cadena de texto a codificar
+        - map: Mapa de códigos de Huffman
+        - map_size: Tamaño del mapa de códigos
+        - encoded_str: Doble puntero para almacenar la cadena de texto codificada
+        - encoded_len: Puntero para almacenar la longitud de la cadena codificada
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable string_to_encode no debe ser NULL
+        - La variable map no debe ser NULL
+        - La variable encoded_str no debe ser NULL
+        - La variable encoded_len no debe ser NULL
+    */
     size_t buffer_size = 1024 * 1024; 
     *encoded_str = (char*)malloc(buffer_size);
     if (*encoded_str == NULL) {
@@ -78,10 +157,10 @@ void encode_huffman(const char* str, code_map* map, int map_size, char** encoded
 
     size_t pos = 0;
     *encoded_len = 0;
-    while (*str) {
+    while (*string_to_encode) {
         int found = 0;
         for (int i = 0; i < map_size; i++) {
-            if (*str == map[i].character) {
+            if (*string_to_encode == map[i].character) {
                 size_t code_len = strlen(map[i].code);
                 while (pos + code_len >= buffer_size) {
                     buffer_size *= 2;
@@ -99,16 +178,31 @@ void encode_huffman(const char* str, code_map* map, int map_size, char** encoded
             }
         }
         if (!found) {
-            fprintf(stderr, "Error: Carácter '%c' no encontrado en el mapa de códigos\n", *str);
+            fprintf(stderr, "Error: Carácter '%c' no encontrado en el mapa de códigos\n", *string_to_encode);
             exit(EXIT_FAILURE);
         }
-        str++;
+        string_to_encode++;
     }
     (*encoded_str)[pos] = '\0';
 }
 
+void decode_huffman_fork(const char* encoded_str, huffman_node* root, FILE* output_file) {
+    /*
+        Función que decodifica una cadena codificada usando un árbol de Huffman
 
-void decode_huffman(const char* encoded_str, huffman_node* root, FILE* output_file) {
+        Entradas:
+        - encoded_str: Cadena de texto codificada
+        - root: Raíz del árbol de Huffman
+        - output_file: Archivo donde se escribirá la cadena decodificada
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable encoded_str no debe ser NULL
+        - La variable root no debe ser NULL
+        - La variable output_file no debe ser NULL
+    */
     huffman_node* current = root;
     for (int i = 0; encoded_str[i] != '\0'; i++) {
         if (encoded_str[i] == '0') {
@@ -124,7 +218,25 @@ void decode_huffman(const char* encoded_str, huffman_node* root, FILE* output_fi
     }
 }
 
-void generate_codes(huffman_node* root, char* code, int length, code_map* map, int* map_size) {
+void generate_codes_fork(huffman_node* root, char* code, int length, code_map* map, int* map_size) {
+    /*
+        Función que genera códigos de Huffman para cada carácter en el árbol
+
+        Entradas:
+        - root: Raíz del árbol de Huffman
+        - code: Buffer para almacenar el código actual
+        - length: Longitud del código actual
+        - map: Mapa de códigos de Huffman a completar
+        - map_size: Puntero para almacenar el tamaño del mapa
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable root no debe ser NULL
+        - La variable map no debe ser NULL
+        - La variable map_size no debe ser NULL
+    */
     if (root == NULL) {
         return;
     }
@@ -143,33 +255,73 @@ void generate_codes(huffman_node* root, char* code, int length, code_map* map, i
 
     if (root->left) {
         code[length] = '0';
-        generate_codes(root->left, code, length + 1, map, map_size);
+        generate_codes_fork(root->left, code, length + 1, map, map_size);
     }
     if (root->right) {
         code[length] = '1';
-        generate_codes(root->right, code, length + 1, map, map_size);
+        generate_codes_fork(root->right, code, length + 1, map, map_size);
     }
     code[length] = '\0'; 
 }
 
-void create_code_map(huffman_node* root, code_map* map, int* map_size) {
+void create_code_map_fork(huffman_node* root, code_map* map, int* map_size) {
+    /*
+        Función que crea un mapa de códigos de Huffman a partir de un árbol
+
+        Entradas:
+        - root: Raíz del árbol de Huffman
+        - map: Mapa de códigos de Huffman a completar
+        - map_size: Puntero para almacenar el tamaño del mapa
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable root no debe ser NULL
+        - La variable map no debe ser NULL
+        - La variable map_size no debe ser NULL
+    */
     char code[256]; 
     *map_size = 0;
-    generate_codes(root, code, 0, map, map_size);
+    generate_codes_fork(root, code, 0, map, map_size);
 }
 
-void free_huffman_tree(huffman_node* root) {
+void free_huffman_tree_fork(huffman_node* root) {
+    /*
+        Función que libera la memoria utilizada por un árbol de Huffman
+
+        Entradas:
+        - root: Raíz del árbol de Huffman a liberar
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable root no debe ser NULL
+    */
     if (root == NULL) {
         return;
     }
 
-    free_huffman_tree(root->left);
-    free_huffman_tree(root->right);
+    free_huffman_tree_fork(root->left);
+    free_huffman_tree_fork(root->right);
 
     free(root);
 }
 
-char* read_file(const char* file_path) {
+char* read_file_fork(const char* file_path) {
+    /*
+        Función que lee el contenido de un archivo en una cadena de texto
+
+        Entradas:
+        - file_path: Ruta del archivo a leer
+
+        Salidas:
+        - Cadena de texto que contiene el contenido del archivo
+
+        Restricciones:
+        - La variable file_path no debe ser NULL
+    */
     FILE* file = fopen(file_path, "rb");
     if (!file) {
         perror("Error abriendo el archivo");
@@ -193,7 +345,21 @@ char* read_file(const char* file_path) {
     return buffer;
 }
 
-void write_huffman_tree(FILE* file, huffman_node* root) {
+void write_huffman_tree_fork(FILE* file, huffman_node* root) {
+    /*
+        Función que escribe un árbol de Huffman en un archivo
+
+        Entradas:
+        - file: Archivo donde se escribirá el árbol
+        - root: Raíz del árbol de Huffman a escribir
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable file no debe ser NULL
+        - La variable root no debe ser NULL
+    */
     if (root == NULL) {
         fputc(0, file);
         return;
@@ -214,12 +380,23 @@ void write_huffman_tree(FILE* file, huffman_node* root) {
         fputc(freq_byte[i], file);
     }
 
-    write_huffman_tree(file, root->left);
-    write_huffman_tree(file, root->right);
+    write_huffman_tree_fork(file, root->left);
+    write_huffman_tree_fork(file, root->right);
 }
 
+huffman_node* read_huffman_tree_fork(FILE* file) {
+    /*
+        Función que lee un árbol de Huffman desde un archivo
 
-huffman_node* read_huffman_tree(FILE* file) {
+        Entradas:
+        - file: puntero al archivo desde donde se leerá el árbol de Huffman
+
+        Salidas:
+        - Puntero al nodo raíz del árbol de Huffman
+
+        Restricciones:
+        - La variable file no debe ser NULL
+    */
     int is_non_null = fgetc(file);
     if (is_non_null == 0) {
         return NULL;
@@ -244,13 +421,28 @@ huffman_node* read_huffman_tree(FILE* file) {
         node->frequency |= (bit_value << (sizeof(int) * 8 - 1 - i));
     }
 
-    node->left = read_huffman_tree(file);
-    node->right = read_huffman_tree(file);
+    node->left = read_huffman_tree_fork(file);
+    node->right = read_huffman_tree_fork(file);
 
     return node;
 }
 
-void write_bits(FILE* file, const char* bits, size_t len) {
+void write_bits_fork(FILE* file, const char* bits, size_t len) {
+    /*
+        Función que escribe una cadena de bits en un archivo
+
+        Entradas:
+        - file: puntero al archivo donde se escribirán los bits
+        - bits: cadena de bits a escribir
+        - len: longitud de la cadena de bits
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable file no debe ser NULL
+        - La variable bits no debe ser NULL
+    */
     unsigned char byte = 0;
     int bit_count = 0;
 
@@ -272,34 +464,48 @@ void write_bits(FILE* file, const char* bits, size_t len) {
     }
 }
 
-void process_file(const char* input_file_path, const char* temp_file_path) {
+void compress_file_fork(const char* input_file_path, const char* temp_file_path) {
+    /*
+        Función que comprime un archivo de texto y lo guarda en un archivo temporal
+
+        Entradas:
+        - input_file_path: ruta del archivo de entrada
+        - temp_file_path: ruta del archivo temporal donde se guardará la compresión
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable input_file_path no debe ser NULL
+        - La variable temp_file_path no debe ser NULL
+    */
     FILE* temp_file = fopen(temp_file_path, "wb");
     if (!temp_file) {
         perror("Error abriendo el archivo temporal para escritura");
         exit(EXIT_FAILURE);
     }
 
-    char* input_str = read_file(input_file_path);
+    char* input_str = read_file_fork(input_file_path);
 
     int frequencies[256];
     char unique_characters[256];
     int unique_count;
-    count_frequencies(input_str, frequencies, unique_characters, &unique_count);
+    count_frequencies_fork(input_str, frequencies, unique_characters, &unique_count);
 
     huffman_node* nodes[256];
     for (int i = 0; i < unique_count; i++) {
-        nodes[i] = create_node(unique_characters[i], frequencies[i]);
+        nodes[i] = create_node_fork(unique_characters[i], frequencies[i]);
     }
 
-    huffman_node* root = build_huffman_tree(unique_count, nodes);
+    huffman_node* root = build_huffman_tree_fork(unique_count, nodes);
 
     code_map map[256];
     int map_size;
-    create_code_map(root, map, &map_size);
+    create_code_map_fork(root, map, &map_size);
 
     char* encoded_str;
     size_t encoded_len;
-    encode_huffman(input_str, map, map_size, &encoded_str, &encoded_len);
+    encode_huffman_fork(input_str, map, map_size, &encoded_str, &encoded_len);
 
     size_t name_len = strlen(input_file_path);
     const char* file_name = strrchr(input_file_path, '/');
@@ -309,21 +515,35 @@ void process_file(const char* input_file_path, const char* temp_file_path) {
     fwrite(&name_len, sizeof(size_t), 1, temp_file);
     fwrite(file_name, sizeof(char), name_len, temp_file);
 
-    write_huffman_tree(temp_file, root);
+    write_huffman_tree_fork(temp_file, root);
 
     fwrite(&encoded_len, sizeof(size_t), 1, temp_file);
-    write_bits(temp_file, encoded_str, encoded_len);
+    write_bits_fork(temp_file, encoded_str, encoded_len);
 
     for (int i = 0; i < map_size; i++) {
         free(map[i].code);
     }
     free(input_str);
     free(encoded_str);
-    free_huffman_tree(root);
+    free_huffman_tree_fork(root);
     fclose(temp_file);
 }
 
-void process_directory(const char* dir_path, const char* compressed_file_path) {
+void compress_files_fork(const char* dir_path, const char* compressed_file_path) {
+    /*
+        Función que comprime todos los archivos en un directorio y los guarda en un archivo comprimido
+
+        Entradas:
+        - dir_path: ruta del directorio que contiene los archivos a comprimir
+        - compressed_file_path: ruta del archivo comprimido de salida
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable dir_path no debe ser NULL
+        - La variable compressed_file_path no debe ser NULL
+    */
     DIR* dir = opendir(dir_path);
     if (dir == NULL) {
         perror("Error abriendo el directorio");
@@ -357,7 +577,7 @@ void process_directory(const char* dir_path, const char* compressed_file_path) {
         } else if (pid == 0) { 
             char temp_file_path[256];
             snprintf(temp_file_path, sizeof(temp_file_path), "%s_%d", TEMP_FILE_PREFIX, i);
-            process_file(file_names[i], temp_file_path);
+            compress_file_fork(file_names[i], temp_file_path);
             free(file_names[i]);
             exit(EXIT_SUCCESS);
         }
@@ -400,7 +620,22 @@ void process_directory(const char* dir_path, const char* compressed_file_path) {
     }
 }
 
-void read_bits(FILE* file, char* bits, size_t len) {
+void read_bits_fork(FILE* file, char* bits, size_t len) {
+    /*
+        Función que lee una cadena de bits de un archivo
+
+        Entradas:
+        - file: puntero al archivo desde donde se leerán los bits
+        - bits: cadena para almacenar los bits leídos
+        - len: longitud de la cadena de bits a leer
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable file no debe ser NULL
+        - La variable bits no debe ser NULL
+    */
     unsigned char byte;
     int bit_count = 0;
     size_t bit_index = 0;
@@ -420,9 +655,24 @@ void read_bits(FILE* file, char* bits, size_t len) {
     }
 }
 
+void decompress_file_fork(const char* compressed_file_path, const char* file_name, const char* output_file_path, long long int position) {
+    /*
+        Función que descomprime un archivo comprimido y guarda el contenido en un archivo de salida
 
+        Entradas:
+        - compressed_file_path: ruta del archivo comprimido
+        - file_name: nombre del archivo de salida
+        - output_file_path: ruta del archivo de salida
+        - position: posición en el archivo comprimido desde donde comenzar la descompresión
 
-void decompress_file(const char* compressed_file_path, const char* file_name, const char* output_file_path, long long int position) {
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable compressed_file_path no debe ser NULL
+        - La variable file_name no debe ser NULL
+        - La variable output_file_path no debe ser NULL
+    */
     FILE* compressed_file = fopen(compressed_file_path, "rb");
     if (!compressed_file) {
         perror("Error abriendo el archivo comprimido para lectura");
@@ -430,7 +680,7 @@ void decompress_file(const char* compressed_file_path, const char* file_name, co
     }
     fseek(compressed_file, position, SEEK_SET);
 
-    huffman_node* root = read_huffman_tree(compressed_file);
+    huffman_node* root = read_huffman_tree_fork(compressed_file);
 
     size_t encoded_len;
     fread(&encoded_len, sizeof(size_t), 1, compressed_file);
@@ -439,7 +689,7 @@ void decompress_file(const char* compressed_file_path, const char* file_name, co
         perror("Error asignando memoria");
         exit(EXIT_FAILURE);
     }
-    read_bits(compressed_file, encoded_str, encoded_len);
+    read_bits_fork(compressed_file, encoded_str, encoded_len);
     encoded_str[encoded_len] = '\0';
 
     FILE* output_file = fopen(output_file_path, "wb");
@@ -448,16 +698,29 @@ void decompress_file(const char* compressed_file_path, const char* file_name, co
         exit(EXIT_FAILURE);
     }
 
-    decode_huffman(encoded_str, root, output_file);
+    decode_huffman_fork(encoded_str, root, output_file);
 
     fclose(output_file);
     fclose(compressed_file);
     free(encoded_str);
-    free_huffman_tree(root);
+    free_huffman_tree_fork(root);
 }
 
+void decompress_files_fork(const char* compressed_file_path, const char* output_dir) {
+    /*
+        Función que descomprime todos los archivos desde un archivo comprimido y guarda los resultados en un directorio
 
-void decompress_files(const char* compressed_file_path, const char* output_dir) {
+        Entradas:
+        - compressed_file_path: ruta del archivo comprimido
+        - output_dir: ruta del directorio donde se guardarán los archivos descomprimidos
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable compressed_file_path no debe ser NULL
+        - La variable output_dir no debe ser NULL
+    */
     FILE* compressed_file = fopen(compressed_file_path, "rb");
     if (!compressed_file) {
         perror("Error abriendo el archivo comprimido para lectura");
@@ -497,7 +760,7 @@ void decompress_files(const char* compressed_file_path, const char* output_dir) 
         output_files[output_file_count] = file_name;
         output_integers[output_file_count] = ftell(compressed_file);  
 
-        huffman_node* root = read_huffman_tree(compressed_file);
+        huffman_node* root = read_huffman_tree_fork(compressed_file);
 
         size_t encoded_len;
         fread(&encoded_len, sizeof(size_t), 1, compressed_file);
@@ -507,7 +770,7 @@ void decompress_files(const char* compressed_file_path, const char* output_dir) 
             exit(EXIT_FAILURE);
         }
         encoded_str[encoded_len] = '\0';
-        read_bits(compressed_file, encoded_str, encoded_len);
+        read_bits_fork(compressed_file, encoded_str, encoded_len);
         size_t path_len = strlen(output_dir) + strlen(file_name) + 2; 
         char* output_file_path = (char*)malloc(path_len);
         if (output_file_path == NULL) {
@@ -519,14 +782,14 @@ void decompress_files(const char* compressed_file_path, const char* output_dir) 
         output_file_count++;
 
         free(encoded_str);
-        free_huffman_tree(root);
+        free_huffman_tree_fork(root);
     }
     fclose(compressed_file);
 
     for (size_t i = 0; i < output_file_count; ++i) {        
         pid_t pid = fork();
         if (pid == 0) {
-            decompress_file(compressed_file_path, output_files[i], output_file_paths[i], output_integers[i]);
+            decompress_file_fork(compressed_file_path, output_files[i], output_file_paths[i], output_integers[i]);
             exit(EXIT_SUCCESS);
         } else if (pid < 0) {
             perror("Error al crear proceso hijo");

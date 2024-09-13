@@ -149,6 +149,25 @@ void extract_title_and_author(const char *filename, char **title, char **author)
     fclose(file);
 }
 
+char *generate_unique_filename(const char *base_path) {
+    char *unique_path = NULL;
+    char buffer[256];
+    int counter = 1;
+
+    while (1) {
+        snprintf(buffer, sizeof(buffer), "%s_%d.txt", base_path, counter);
+        if (access(buffer, F_OK) != 0) { 
+            unique_path = malloc(strlen(buffer) + 1);
+            if (unique_path) {
+                strcpy(unique_path, buffer);
+            }
+            break;
+        }
+        counter++;
+    }
+
+    return unique_path;
+}
 
 void process_link(CURL *curl_handle, const char *url) {
     CURLcode curl_status;
@@ -182,15 +201,6 @@ void process_link(CURL *curl_handle, const char *url) {
                 fprintf(stderr, "curl_easy_perform() falló para la URL %s: %s\n", full_url, curl_easy_strerror(curl_status));
             } else {
                 const char *directory = "books_to_compress";
-                struct stat dir_stat = {0};
-
-                if (stat(directory, &dir_stat) == -1) {
-                    if (mkdir(directory, 0700) != 0) {
-                        perror("Error creando el directorio books_to_compress");
-                        return;
-                    }
-                }
-
                 char file_path[256];
                 snprintf(file_path, sizeof(file_path), "%s/output.txt", directory);
 
@@ -206,16 +216,22 @@ void process_link(CURL *curl_handle, const char *url) {
                 char *author = NULL;
                 extract_title_and_author(file_path, &title, &author);
                 if (title && author) {
-                    snprintf(file_path, sizeof(file_path), "%s/%s - %s.txt", directory, title, author);
+                    char base_name[256];
+                    snprintf(base_name, sizeof(base_name), "%s/%s - %s", directory, title, author);
 
-                    if (remove(file_path) != 0 && errno != ENOENT) {
-                        perror("Error eliminando archivo existente");
-                    }
+                    char *unique_file_path = generate_unique_filename(base_name);
+                    if (unique_file_path) {
+                        if (remove(unique_file_path) != 0 && errno != ENOENT) {
+                            perror("Error eliminando archivo existente");
+                        }
 
-                    if (rename("books_to_compress/output.txt", file_path) == 0) {
-                        printf("Se ha descargado: %s\n", file_path);
-                    } else {
-                        perror("Error renombrando el archivo");
+                        if (rename("books_to_compress/output.txt", unique_file_path) == 0) {
+                            printf("Se ha descargado: %s\n", unique_file_path);
+                        } else {
+                            perror("Error renombrando el archivo");
+                        }
+
+                        free(unique_file_path);
                     }
 
                     free(title);
@@ -234,6 +250,47 @@ void process_link(CURL *curl_handle, const char *url) {
     free(response_chunk.data);
 }
 
+int remove_directory(const char *dir_path) {
+    DIR *dir = opendir(dir_path);
+    if (!dir) {
+        perror("Error abriendo directorio para eliminar");
+        return -1;
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        char path[1024];
+        snprintf(path, sizeof(path), "%s/%s", dir_path, entry->d_name);
+
+        struct stat statbuf;
+        if (stat(path, &statbuf) == -1) {
+            perror("Error obteniendo información del archivo");
+            closedir(dir);
+            return -1;
+        }
+
+        if (S_ISDIR(statbuf.st_mode)) {
+            if (remove_directory(path) == -1) {
+                closedir(dir);
+                return -1;
+            }
+        } else {
+            if (unlink(path) == -1) {
+                perror("Error eliminando archivo");
+                closedir(dir);
+                return -1;
+            }
+        }
+    }
+
+    closedir(dir);
+    return rmdir(dir_path);
+}
+
 void download_text_files(const char* base_url) {
     CURL *curl;
     CURLcode res;
@@ -243,6 +300,21 @@ void download_text_files(const char* base_url) {
     chunk.size = 0;      
 
     remove("links.txt");    
+    
+    const char *directory = "books_to_compress";
+    struct stat dir_stat = {0};
+
+    if (stat(directory, &dir_stat) != -1) {
+        if (remove_directory(directory) == -1) {
+            fprintf(stderr, "Error al eliminar el directorio %s\n", directory);
+            return;
+        }
+    }
+
+    if (mkdir(directory, 0700) != 0) {
+        perror("Error creando el directorio books_to_compress");
+        return;
+    }
 
     curl_global_init(CURL_GLOBAL_ALL);
     curl = curl_easy_init();

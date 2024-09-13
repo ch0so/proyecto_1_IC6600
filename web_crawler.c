@@ -97,8 +97,6 @@ char *find_link(const char *html) {
             strncpy(link, html + matches[1].rm_so, length);
             link[length] = '\0';
         }
-    } else {
-        fprintf(stderr, "No se encontró coincidencia\n");
     }
 
     regfree(&regex);
@@ -168,7 +166,7 @@ void process_link(CURL *curl_handle, const char *url) {
 
                 if (stat(directory, &dir_stat) == -1) {
                     if (mkdir(directory, 0700) != 0) {
-                        perror("Error creating directory");
+                        perror("Error creando el directorio");
                         return;
                     }
                 }
@@ -181,7 +179,7 @@ void process_link(CURL *curl_handle, const char *url) {
                     fwrite(file_chunk.data, 1, file_chunk.size, file);
                     fclose(file);
                 } else {
-                    perror("Error opening file");
+                    perror("Error abriendo el archivo");
                 }
 
                 char *title = NULL;
@@ -191,13 +189,13 @@ void process_link(CURL *curl_handle, const char *url) {
                     snprintf(file_path, sizeof(file_path), "%s/%s - %s.txt", directory, title, author);
 
                     if (remove(file_path) != 0 && errno != ENOENT) {
-                        perror("Error deleting existing file");
+                        perror("Error eliminando archivo existente");
                     }
 
                     if (rename("books_to_compress/output.txt", file_path) == 0) {
                         printf("Se ha descargado: %s\n", file_path);
                     } else {
-                        perror("Error renaming file");
+                        perror("Error renombrando el archivo");
                     }
 
                     free(title);
@@ -218,6 +216,8 @@ void download_text_files(const char* base_url) {
     CURLcode res;
     memory_data chunk;
 
+    remove("links.txt");
+
     chunk.data = malloc(1);  
     chunk.size = 0;          
 
@@ -230,7 +230,7 @@ void download_text_files(const char* base_url) {
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
         res = curl_easy_perform(curl);
         if (res != CURLE_OK) {
-            fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+            fprintf(stderr, "curl_easy_perform() acaba de fallar: %s\n", curl_easy_strerror(res));
         } else {
             extract_links_from_html(chunk.data);
         }
@@ -248,7 +248,7 @@ void download_text_files(const char* base_url) {
     if (curl) {
         file = fopen("links.txt", "r");
         if (file == NULL) {
-            perror("Error opening links.txt");
+            perror("Error abriendo los enlaces");
         }
 
         while (fgets(url, sizeof(url), file)) {

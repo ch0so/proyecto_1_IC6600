@@ -15,10 +15,21 @@ int main() {
     //const char* base_url = "https://www.gutenberg.org/browse/scores/top";
     //download_text_files(base_url);
     const char *input_dir = "books_to_compress";
+    const char *compressed_file_dir = "compressed_books";
     const char *compressed_file_path = "compressed_books/compressed.bin";
     const char *decompressed_dir = "decompressed_books";
 
-    process_directory(input_dir, compressed_file_path);
-    decompress_files(compressed_file_path, decompressed_dir);
+    struct stat st = {0};
+
+    if (stat(compressed_file_dir, &st) == -1) {
+        mkdir(compressed_file_dir, 0700);
+    }
+
+    if (stat(decompressed_dir, &st) == -1) {
+        mkdir(decompressed_dir, 0700);
+    }
+
+    //process_directory(input_dir, compressed_file_path);
+    //decompress_files(compressed_file_path, decompressed_dir);
     return 0;
 }

@@ -1,4 +1,4 @@
-The Project Gutenberg eBook of Doctrina Christiana
+﻿The Project Gutenberg eBook of Doctrina Christiana
     
 This ebook is for the use of anyone anywhere in the United States and
 most other parts of the world at no cost and with almost no restrictions
@@ -129,7 +129,7 @@ books which exist today, unchronided and forgotten, are those which
 were sent to Europe in the 16th, 17th and 18th centuries, and may
 now be lying uncatalogued in some library there.
 
-One copy of this Doctrina was sent to Philip II by the Governor of
+One copy of this Doctrina was sent to Philip II by the Governor of
 the Philippines in 1593; and in 1785 a Jesuit philologist, Hervas y
 Panduro, printed Tagalog texts from a then extant copy. Yet, since
 that time no example is recorded as having been seen by bibliographer
@@ -145,7 +145,7 @@ the importance of the volume, and induced him to sell the precious
 Doctrina. He brought it back with him to the United States and offered
 it to Lessing J. Rosenwald, who promptly purchased it and presented it
 to the Library of Congress. Where the book had been before it reached
-Paris we do not know. Perhaps it is the very copy sent to Philip II,
+Paris we do not know. Perhaps it is the very copy sent to Philip II,
 perhaps the copy from which Hervas got his text. Indeed, it may
 have been churned to the surface by the late Civil War in Spain,
 and sent from there to France. In the course of years from similar
@@ -282,7 +282,7 @@ THE BIBLIOGRAPHICAL HISTORY
 In tracing our clues down through the years, we find at the very
 beginning the most valuable evidence which has been uncovered, short
 of the book itself. From Manila on June 20, 1593, the Governor of the
-Philippines, Gomez Perez Dasmariñas, wrote a letter to Philip II of
+Philippines, Gomez Perez Dasmariñas, wrote a letter to Philip II of
 Spain in which he said:
 
 
@@ -335,7 +335,7 @@ Indies," and on May 8, 1584 this was implemented by the further order
 made it shall not be published, or printed or used unless it has first
 been examined by the Bishop and seen by the Royal Audiencia." This
 latter portion was applied specifically to the Philippines in a letter
-[10] from Philip II to the Audiencia of Manila, also dated May 8,
+[10] from Philip II to the Audiencia of Manila, also dated May 8,
 1584, to which further reference will be made. It can be gathered
 from Dasmariñas' implied apology that he had never before given such
 a license, and, since he had arrived in the Philippines in 1590, that
@@ -615,7 +615,7 @@ Augustinians. His remarks on Quiñones, first printed by Santiago Vela
 [38], we believe are only an extension of Herrera's _in lucem edidit_.
 
 This same confusion in terminology has been used [39] to support
-Beristain's claim by introducing as evidence the letter of Philip II of
+Beristain's claim by introducing as evidence the letter of Philip II of
 May 8, 1584. Salazar, the Bishop of Manila, probably shortly after the
 Synod of 1582, had written the King a letter, now unfortunately lost,
 in which he spoke of a decision to standardize linguistic works. In
@@ -3012,7 +3012,7 @@ in Mexico Vasco de Puga's _Provisiones_ of 1563 was permitted to sell
 at the tremendous figure of one real or 34 maravedís a sheet.
 
 [13] Juan de Cuellar was mentioned in the Letter of Instruction given
-by Philip II to Gómez Pérez Dasmariñas on August 9, 1589, as among
+by Philip II to Gómez Pérez Dasmariñas on August 9, 1589, as among
 those "who are men of worth and account" in the Philippines and who
 should be provided for and rewarded accordingly, B. & R., VII, p. 151,
 translated from the original MS. in the A. of I. (105-2-11), Torres,
@@ -3459,7 +3459,7 @@ which had taken place in the language since his time.
 
 [94] Chirino, chaps. XV-XVII, pp. 34-41.
 
-[95] On May 13, 1579, Philip II wrote to the Governor of the
+[95] On May 13, 1579, Philip II wrote to the Governor of the
 Philippines, "Fray Domingo de Salazar, of the Dominican order, and
 bishop of the said islands, has reported to us that he is going to
 reside in these islands; and that he will take with him religious of
@@ -3484,7 +3484,7 @@ Soria de San Antonio, Juan de San Pedro Martyr (or Maldonado), Juan
 Ormaza de Santo Tomás, Pedro de Soto, Juan de la Cruz, Gregorio de
 Ochoa, Domingo de Nieva, and Pedro Rodriguez.
 
-[97] By a bull of October 20, 1582 Pope Gregory XIII confirmed the
+[97] By a bull of October 20, 1582 Pope Gregory XIII confirmed the
 appointment already obtained from Pablo Constable de Ferrara, General
 of the Dominican Order, making Juan Chrisóstomo vicar-general of the
 Philippine Islands and China, and giving him authority to establish
@@ -3501,7 +3501,7 @@ was at court, and told the King and Council of the Indies--quite
 subverting his mission--that there was no need for more priests
 and particularly no need for a new order there. Chrisóstomo was
 discouraged, but the scheme was revivified by Juan de Castro who
-finally secured a letter from Philip II on September 20, 1585 endorsing
+finally secured a letter from Philip II on September 20, 1585 endorsing
 the plan. Twenty-two volunteers sailed from Spain on July 17, 1586. In
 Mexico the Dominicans again found Sanchez propagandizing against the
 mission and also encountered the efforts of the Viceroy to persuade
@@ -4043,3 +4043,5 @@ This website includes information about Project Gutenberg™,
 including how to make donations to the Project Gutenberg Literary
 Archive Foundation, how to help produce our new eBooks, and how to
 subscribe to our email newsletter to hear about new eBooks.
+
+

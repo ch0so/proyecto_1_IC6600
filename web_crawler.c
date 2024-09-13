@@ -61,7 +61,7 @@ void extract_links_from_html(const char *html) {
                             fprintf(file, "%s\n", link);
                             fclose(file);
                         } else {
-                            perror("Error abriendo archivo");
+                            perror("Error abriendo archivo links.txt");
                         }
 
                         free(link);
@@ -106,11 +106,14 @@ char *find_link(const char *html) {
 void extract_title_and_author(const char *filename, char **title, char **author) {
     FILE *file = fopen(filename, "r");
     if (file == NULL) {
-        perror("Error abriendo archivo");
+        perror("Error abriendo archivo para extraer título y autor");
         return;
     }
 
     char buffer[1024];
+    *title = NULL;
+    *author = NULL;
+    
     while (fgets(buffer, sizeof(buffer), file)) {
         if (strncmp(buffer, "Title:", 6) == 0) {
             *title = malloc(strlen(buffer) - 7 + 1);
@@ -124,11 +127,28 @@ void extract_title_and_author(const char *filename, char **title, char **author)
                 strcpy(*author, buffer + 8);
                 (*author)[strcspn(*author, "\r\n")] = '\0';
             }
+        } else if (strncmp(buffer, "Translator:", 11) == 0) {
+            if (*author == NULL) {
+                *author = malloc(strlen(buffer) - 12 + 1);
+                if (*author) {
+                    strcpy(*author, buffer + 12);
+                    (*author)[strcspn(*author, "\r\n")] = '\0';
+                }
+            }
+        } else if (strncmp(buffer, "Editor:", 7) == 0) {
+            if (*author == NULL) {
+                *author = malloc(strlen(buffer) - 8 + 1);
+                if (*author) {
+                    strcpy(*author, buffer + 8);
+                    (*author)[strcspn(*author, "\r\n")] = '\0';
+                }
+            }
         }
     }
 
     fclose(file);
 }
+
 
 void process_link(CURL *curl_handle, const char *url) {
     CURLcode curl_status;
@@ -143,7 +163,7 @@ void process_link(CURL *curl_handle, const char *url) {
     curl_status = curl_easy_perform(curl_handle);
 
     if (curl_status != CURLE_OK) {
-        fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(curl_status));
+        fprintf(stderr, "curl_easy_perform() falló para la URL %s: %s\n", url, curl_easy_strerror(curl_status));
     } else {
         char *link = find_link(response_chunk.data);
         if (link) {
@@ -159,14 +179,14 @@ void process_link(CURL *curl_handle, const char *url) {
             curl_status = curl_easy_perform(curl_handle);
 
             if (curl_status != CURLE_OK) {
-                fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(curl_status));
+                fprintf(stderr, "curl_easy_perform() falló para la URL %s: %s\n", full_url, curl_easy_strerror(curl_status));
             } else {
                 const char *directory = "books_to_compress";
                 struct stat dir_stat = {0};
 
                 if (stat(directory, &dir_stat) == -1) {
                     if (mkdir(directory, 0700) != 0) {
-                        perror("Error creando el directorio");
+                        perror("Error creando el directorio books_to_compress");
                         return;
                     }
                 }
@@ -179,7 +199,7 @@ void process_link(CURL *curl_handle, const char *url) {
                     fwrite(file_chunk.data, 1, file_chunk.size, file);
                     fclose(file);
                 } else {
-                    perror("Error abriendo el archivo");
+                    perror("Error abriendo el archivo para escribir el contenido descargado");
                 }
 
                 char *title = NULL;
@@ -200,26 +220,29 @@ void process_link(CURL *curl_handle, const char *url) {
 
                     free(title);
                     free(author);
+                } else {
+                    fprintf(stderr, "No se pudo extraer título y autor en: %s\n", link);
                 }
+
+                free(file_chunk.data);
             }
 
-            free(file_chunk.data);
             free(link);
         }
     }
 
     free(response_chunk.data);
-} 
+}
 
 void download_text_files(const char* base_url) {
     CURL *curl;
     CURLcode res;
     memory_data chunk;
 
-    remove("links.txt");
-
     chunk.data = malloc(1);  
-    chunk.size = 0;          
+    chunk.size = 0;      
+
+    remove("links.txt");    
 
     curl_global_init(CURL_GLOBAL_ALL);
     curl = curl_easy_init();
@@ -230,12 +253,14 @@ void download_text_files(const char* base_url) {
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
         res = curl_easy_perform(curl);
         if (res != CURLE_OK) {
-            fprintf(stderr, "curl_easy_perform() acaba de fallar: %s\n", curl_easy_strerror(res));
+            fprintf(stderr, "curl_easy_perform() falló para la URL base %s: %s\n", base_url, curl_easy_strerror(res));
         } else {
             extract_links_from_html(chunk.data);
         }
 
         curl_easy_cleanup(curl);
+    } else {
+        fprintf(stderr, "No se pudo inicializar CURL\n");
     }
 
     free(chunk.data);
@@ -248,16 +273,18 @@ void download_text_files(const char* base_url) {
     if (curl) {
         file = fopen("links.txt", "r");
         if (file == NULL) {
-            perror("Error abriendo los enlaces");
+            perror("Error abriendo links.txt");
+        } else {
+            while (fgets(url, sizeof(url), file)) {
+                url[strcspn(url, "\r\n")] = '\0';
+                process_link(curl, url);
+            }
+            fclose(file);
         }
 
-        while (fgets(url, sizeof(url), file)) {
-            url[strcspn(url, "\r\n")] = '\0';
-            process_link(curl, url);
-        }
-
-        fclose(file);
         curl_easy_cleanup(curl);
+    } else {
+        fprintf(stderr, "No se pudo inicializar CURL para el procesamiento de enlaces\n");
     }
 
     curl_global_cleanup();

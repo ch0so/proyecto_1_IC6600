@@ -655,7 +655,7 @@ void read_bits_fork(FILE* file, char* bits, size_t len) {
     }
 }
 
-void decompress_file_fork(const char* compressed_file_path, const char* file_name, const char* output_file_path, long long int position) {
+void decompress_file_fork(const char* compressed_file_path, const char* file_name, const char* output_file_path, long long int position, huffman_node* huffman_tree, char* encoded_str) {
     /*
         Función que descomprime un archivo comprimido y guarda el contenido en un archivo de salida
 
@@ -664,6 +664,8 @@ void decompress_file_fork(const char* compressed_file_path, const char* file_nam
         - file_name: nombre del archivo de salida
         - output_file_path: ruta del archivo de salida
         - position: posición en el archivo comprimido desde donde comenzar la descompresión
+        - huffman_tree: árbol de Huffman para la descompresión
+        - encoded_str: cadena codificada para la descompresión
 
         Salidas:
         - Ninguna
@@ -672,7 +674,15 @@ void decompress_file_fork(const char* compressed_file_path, const char* file_nam
         - La variable compressed_file_path no debe ser NULL
         - La variable file_name no debe ser NULL
         - La variable output_file_path no debe ser NULL
+        - El árbol de Huffman no debe ser NULL
+        - La cadena codificada no debe ser NULL
     */
+    FILE* output_file = fopen(output_file_path, "wb");
+    if (!output_file) {
+        perror("Error abriendo el archivo de salida");
+        exit(EXIT_FAILURE);
+    }
+
     FILE* compressed_file = fopen(compressed_file_path, "rb");
     if (!compressed_file) {
         perror("Error abriendo el archivo comprimido para lectura");
@@ -680,31 +690,13 @@ void decompress_file_fork(const char* compressed_file_path, const char* file_nam
     }
     fseek(compressed_file, position, SEEK_SET);
 
-    huffman_node* root = read_huffman_tree_fork(compressed_file);
-
-    size_t encoded_len;
-    fread(&encoded_len, sizeof(size_t), 1, compressed_file);
-    char* encoded_str = (char*)malloc(encoded_len + 1);
-    if (encoded_str == NULL) {
-        perror("Error asignando memoria");
-        exit(EXIT_FAILURE);
-    }
-    read_bits_fork(compressed_file, encoded_str, encoded_len);
-    encoded_str[encoded_len] = '\0';
-
-    FILE* output_file = fopen(output_file_path, "wb");
-    if (!output_file) {
-        perror("Error abriendo el archivo de salida");
-        exit(EXIT_FAILURE);
-    }
-
-    decode_huffman_fork(encoded_str, root, output_file);
+    // Decodificar la cadena codificada usando el árbol de Huffman
+    decode_huffman_fork(encoded_str, huffman_tree, output_file);
 
     fclose(output_file);
     fclose(compressed_file);
-    free(encoded_str);
-    free_huffman_tree_fork(root);
 }
+
 
 void decompress_files_fork(const char* compressed_file_path, const char* output_dir) {
     /*
@@ -727,7 +719,7 @@ void decompress_files_fork(const char* compressed_file_path, const char* output_
         exit(EXIT_FAILURE);
     }
 
-    char** output_file_paths = (char**)malloc(INITIAL_CAPACITY * sizeof(size_t));
+    char** output_file_paths = (char**)malloc(INITIAL_CAPACITY * sizeof(char*));
     if (!output_file_paths) {
         perror("Error asignando memoria para las posiciones de los archivos");
         exit(EXIT_FAILURE);
@@ -742,6 +734,18 @@ void decompress_files_fork(const char* compressed_file_path, const char* output_
     long long int* output_integers = (long long int*)malloc(INITIAL_CAPACITY * sizeof(long long int));
     if (!output_integers) {
         perror("Error asignando memoria para los enteros largos");
+        exit(EXIT_FAILURE);
+    }
+
+    huffman_node** huffman_trees = (huffman_node**)malloc(INITIAL_CAPACITY * sizeof(huffman_node*));
+    if (!huffman_trees) {
+        perror("Error asignando memoria para los árboles de Huffman");
+        exit(EXIT_FAILURE);
+    }
+
+    char** encoded_strings = (char**)malloc(INITIAL_CAPACITY * sizeof(char*));
+    if (!encoded_strings) {
+        perror("Error asignando memoria para las cadenas codificadas");
         exit(EXIT_FAILURE);
     }
 
@@ -761,9 +765,9 @@ void decompress_files_fork(const char* compressed_file_path, const char* output_
         output_integers[output_file_count] = ftell(compressed_file);  
 
         huffman_node* root = read_huffman_tree_fork(compressed_file);
-
         size_t encoded_len;
         fread(&encoded_len, sizeof(size_t), 1, compressed_file);
+
         char* encoded_str = (char*)malloc(encoded_len + 1);
         if (encoded_str == NULL) {
             perror("Error asignando memoria");
@@ -771,6 +775,10 @@ void decompress_files_fork(const char* compressed_file_path, const char* output_
         }
         encoded_str[encoded_len] = '\0';
         read_bits_fork(compressed_file, encoded_str, encoded_len);
+
+        huffman_trees[output_file_count] = root;
+        encoded_strings[output_file_count] = encoded_str;
+
         size_t path_len = strlen(output_dir) + strlen(file_name) + 2; 
         char* output_file_path = (char*)malloc(path_len);
         if (output_file_path == NULL) {
@@ -780,16 +788,13 @@ void decompress_files_fork(const char* compressed_file_path, const char* output_
         snprintf(output_file_path, path_len, "%s/%s", output_dir, file_name);
         output_file_paths[output_file_count] = output_file_path;
         output_file_count++;
-
-        free(encoded_str);
-        free_huffman_tree_fork(root);
     }
     fclose(compressed_file);
 
     for (size_t i = 0; i < output_file_count; ++i) {        
         pid_t pid = fork();
         if (pid == 0) {
-            decompress_file_fork(compressed_file_path, output_files[i], output_file_paths[i], output_integers[i]);
+            decompress_file_fork(compressed_file_path, output_files[i], output_file_paths[i], output_integers[i], huffman_trees[i], encoded_strings[i]);
             exit(EXIT_SUCCESS);
         } else if (pid < 0) {
             perror("Error al crear proceso hijo");
@@ -804,9 +809,13 @@ void decompress_files_fork(const char* compressed_file_path, const char* output_
     for (size_t i = 0; i < output_file_count; ++i) {
         free(output_files[i]);
         free(output_file_paths[i]);
+        free(encoded_strings[i]);
+        free_huffman_tree_fork(huffman_trees[i]);
     }
 
     free(output_files);
     free(output_file_paths);
     free(output_integers);
+    free(huffman_trees);
+    free(encoded_strings);
 }

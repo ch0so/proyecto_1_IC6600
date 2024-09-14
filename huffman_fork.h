@@ -87,7 +87,7 @@ void compress_files_fork(const char* dir_path, const char* compressed_file_path)
 void read_bits_fork(FILE* file, char* bits, size_t len);
 
 // Función que descomprime todos los archivos desde un archivo comprimido y guarda los resultados en un directorio
-void decompress_file_fork(const char* compressed_file_path, const char* file_name, const char* output_file_path, long long int position);
+void decompress_file_fork(const char* compressed_file_path, const char* file_name, const char* output_file_path, long long int position, huffman_node* huffman_tree, char* encoded_str);
 
 // Función que descomprime todos los archivos desde un archivo comprimido y guarda los resultados en un directorio
 void decompress_files_fork(const char* compressed_file_path, const char* output_dir);

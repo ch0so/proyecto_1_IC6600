@@ -23,6 +23,7 @@ Referencias bibliográficas:
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/time.h>
 #include <pthread.h>
 #include "web_crawler.h"
 #include "huffman_fork.h"
@@ -75,6 +76,8 @@ int main(int argc, char *argv[]) {
     const char *compressed_file_dir = "compressed_books";
     const char *compressed_file_path = "compressed_books/compressed.bin";
     const char *decompressed_dir = "decompressed_books";
+    struct timeval start_time, end_time;
+    long seconds, microseconds, nanoseconds;
 
     // Manejo de la opción download_books
     if (strcmp(argv[1], "download_books") == 0) {
@@ -102,7 +105,13 @@ int main(int argc, char *argv[]) {
                 perror("Error creando el directorio");
             }
         }
+        gettimeofday(&start_time, NULL);
         compress_files_fork(input_dir, compressed_file_path);
+        gettimeofday(&end_time, NULL);
+        seconds = end_time.tv_sec - start_time.tv_sec;
+        microseconds = end_time.tv_usec - start_time.tv_usec;
+        nanoseconds = (seconds * 1e9) + (microseconds * 1e3);
+        printf("El programa tardó %ld nanosegundos en ejecutarse\n", nanoseconds);
     } 
     // Manejo de la opción decompressed_fork
     else if (strcmp(argv[1], "decompressed_fork") == 0) {
@@ -111,7 +120,13 @@ int main(int argc, char *argv[]) {
                 perror("Error creando el directorio");
             }
         }
+        gettimeofday(&start_time, NULL);
         decompress_files_fork(compressed_file_path, decompressed_dir);
+        gettimeofday(&end_time, NULL);
+        seconds = end_time.tv_sec - start_time.tv_sec;
+        microseconds = end_time.tv_usec - start_time.tv_usec;
+        nanoseconds = (seconds * 1e9) + (microseconds * 1e3);
+        printf("El programa tardó %ld nanosegundos en ejecutarse\n", nanoseconds);
     } 
     // Manejo de la opción compressed_serial
     else if (strcmp(argv[1], "compressed_serial") == 0) {
@@ -120,7 +135,13 @@ int main(int argc, char *argv[]) {
                 perror("Error creando el directorio");
             }
         }
+        gettimeofday(&start_time, NULL);
         compress_files_serial(input_dir, compressed_file_path);
+        gettimeofday(&end_time, NULL);
+        seconds = end_time.tv_sec - start_time.tv_sec;
+        microseconds = end_time.tv_usec - start_time.tv_usec;
+        nanoseconds = (seconds * 1e9) + (microseconds * 1e3);
+        printf("El programa tardó %ld nanosegundos en ejecutarse\n", nanoseconds);
     } 
     // Manejo de la opción decompressed_serial
     else if (strcmp(argv[1], "decompressed_serial") == 0) {
@@ -129,7 +150,13 @@ int main(int argc, char *argv[]) {
                 perror("Error creando el directorio");
             }
         }
+        gettimeofday(&start_time, NULL);
         decompress_files_serial(compressed_file_path, decompressed_dir);
+        gettimeofday(&end_time, NULL);
+        seconds = end_time.tv_sec - start_time.tv_sec;
+        microseconds = end_time.tv_usec - start_time.tv_usec;
+        nanoseconds = (seconds * 1e9) + (microseconds * 1e3);
+        printf("El programa tardó %ld nanosegundos en ejecutarse\n", nanoseconds);
     } 
     // Manejo de la opción compressed_threads
     else if (strcmp(argv[1], "compressed_threads") == 0) {
@@ -138,7 +165,13 @@ int main(int argc, char *argv[]) {
                 perror("Error creando el directorio");
             }
         }
+        gettimeofday(&start_time, NULL);
         compress_files_threads(input_dir, compressed_file_path);
+        gettimeofday(&end_time, NULL);
+        seconds = end_time.tv_sec - start_time.tv_sec;
+        microseconds = end_time.tv_usec - start_time.tv_usec;
+        nanoseconds = (seconds * 1e9) + (microseconds * 1e3);
+        printf("El programa tardó %ld nanosegundos en ejecutarse\n", nanoseconds);
     } 
     // Manejo de la opción decompressed_threads
     else if (strcmp(argv[1], "decompressed_threads") == 0) {
@@ -147,7 +180,13 @@ int main(int argc, char *argv[]) {
                 perror("Error creando el directorio");
             }
         }
+        gettimeofday(&start_time, NULL);
         decompress_files_threads(compressed_file_path, decompressed_dir);
+        gettimeofday(&end_time, NULL);
+        seconds = end_time.tv_sec - start_time.tv_sec;
+        microseconds = end_time.tv_usec - start_time.tv_usec;
+        nanoseconds = (seconds * 1e9) + (microseconds * 1e3);
+        printf("El programa tardó %ld nanosegundos en ejecutarse\n", nanoseconds);
     } 
     // Manejo de opción inválida
     else {

@@ -35,7 +35,20 @@ Referencias bibliográficas:
 #define ENCODED_DATA_THREADS 8
 
 // Tamaño máximo de la ruta de archivo
-#define FILE_PATH_SIZE 256
+#define FILE_PATH_SIZE 290
+
+// Capacidad inicial para arrays dinámicos que almacenan archivos y posiciones
+#define INITIAL_CAPACITY 256
+
+// Estructura que contiene los argumentos necesarios para que un hilo procese un archivo comprimido
+typedef struct decompress_args {
+    const char* compressed_file_path; // Ruta del archivo comprimido
+    const char* file_name; // Nombre del archivo de salida
+    const char* output_file_path; // Ruta del archivo de salida
+    long long int position; // Posición en el archivo comprimido desde donde comenzar la descompresión
+    huffman_node* huffman_tree; // Árbol de Huffman para la descompresión
+    char* encoded_str; // Cadena codificada para la descompresión
+} decompress_args_t;
 
 // Estructura que contiene los argumentos necesarios para que un hilo procese un archivo
 typedef struct args_thread {
@@ -99,11 +112,8 @@ void *encode_huffman_threads_aux(void *arg);
 // Función que divide la cadena a codificar y utiliza hilos para paralelizar el proceso de codificación de Huffman
 void encode_huffman_threads(const char *str, code_map *map, int map_size, char **encoded_str, size_t *encoded_len);
 
-// Función auxiliar que decodifica una cadena codificada utilizando el algoritmo de Huffman en múltiples hilos
-void *decode_huffman_threads_aux(void *arg);
-
 // Función que divide la cadena codificada y utiliza hilos para paralelizar el proceso de decodificación de Huffman
-void decode_huffman_threads(const char *encoded_str, huffman_node *root, FILE *output_file);
+void decode_huffman_threads(const char* encoded_str, huffman_node* root, FILE* output_file);
 
 // Función que genera códigos de Huffman para cada carácter en el árbol
 void generate_codes_threads(huffman_node* root, char* code, int length, code_map* map, int* map_size);

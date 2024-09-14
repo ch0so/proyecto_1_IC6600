@@ -257,50 +257,12 @@ void encode_huffman_threads(const char *str, code_map *map, int map_size, char *
     pthread_mutex_destroy(&encoded_str_mutex);
 }
 
-void *decode_huffman_threads_aux(void *arg) {
+void decode_huffman_threads(const char* encoded_str, huffman_node* root, FILE* output_file) {
     /*
-        Función auxiliar que decodifica una cadena codificada utilizando el algoritmo de Huffman en múltiples hilos
+        Función que decodifica una cadena codificada usando un árbol de Huffman
 
         Entradas:
-        - arg: Puntero a una estructura huffman_decoded_data con los datos necesarios para la decodificación (cadena codificada, árbol de Huffman, etc)
-
-        Salidas:
-        - Ninguna
-
-        Restricciones:
-        - La estructura huffman_decoded_data debe estar correctamente inicializada
-        - El archivo de salida debe estar abierto antes de ser utilizado
-    */
-    huffman_decoded_data *data = (huffman_decoded_data *)arg;
-    huffman_node *current = data->root;
-
-    for (long i = data->initial; i < data->final; i++) {
-        if (data->encoded_str[i] == '0') {
-            current = current->left;
-        }
-        else if (data->encoded_str[i] == '1') {
-            current = current->right;
-        }
-
-        if (current->left == NULL && current->right == NULL) {
-
-            pthread_mutex_lock(data->mutex);
-            fputc(current->character, data->output_file);
-            pthread_mutex_unlock(data->mutex);
-
-            current = data->root;
-        }
-    }
-
-    return NULL;
-}
-
-void decode_huffman_threads(const char *encoded_str, huffman_node *root, FILE *output_file) {
-    /*
-        Función que divide la cadena codificada y utiliza hilos para paralelizar el proceso de decodificación de Huffman
-
-        Entradas:
-        - encoded_str: Cadena codificada
+        - encoded_str: Cadena de texto codificada
         - root: Raíz del árbol de Huffman
         - output_file: Archivo donde se escribirá la cadena decodificada
 
@@ -309,32 +271,22 @@ void decode_huffman_threads(const char *encoded_str, huffman_node *root, FILE *o
 
         Restricciones:
         - La variable encoded_str no debe ser NULL
-        - El archivo de salida debe estar abierto antes de ser utilizado
-        - La raíz del árbol de Huffman debe estar correctamente inicializada
+        - La variable root no debe ser NULL
+        - La variable output_file no debe ser NULL
     */
-    long string_length = strlen(encoded_str);
-    long segment_length = string_length / ENCODED_DATA_THREADS;
+    huffman_node* current = root;
+    for (int i = 0; encoded_str[i] != '\0'; i++) {
+        if (encoded_str[i] == '0') {
+            current = current->left;
+        } else if (encoded_str[i] == '1') {
+            current = current->right;
+        }
 
-    pthread_t threads[ENCODED_DATA_THREADS];
-    huffman_decoded_data thread_data[ENCODED_DATA_THREADS];
-    pthread_mutex_init(&decode_str_mutex, NULL);
-
-    for (int i = 0; i < ENCODED_DATA_THREADS; i++) {
-        thread_data[i].encoded_str = encoded_str;
-        thread_data[i].initial = i * segment_length;
-        thread_data[i].final = (i == ENCODED_DATA_THREADS - 1) ? string_length : (i + 1) * segment_length;
-        thread_data[i].root = root;
-        thread_data[i].output_file = output_file;
-        thread_data[i].mutex = &decode_str_mutex;
-
-        pthread_create(&threads[i], NULL, decode_huffman_threads_aux, &thread_data[i]);
+        if (current->left == NULL && current->right == NULL) {
+            fputc(current->character, output_file);
+            current = root; 
+        }
     }
-
-    for (int i = 0; i < ENCODED_DATA_THREADS; i++) {
-        pthread_join(threads[i], NULL);
-    }
-
-    pthread_mutex_destroy(&decode_str_mutex);
 }
 
 void generate_codes_threads(huffman_node* root, char* code, int length, code_map* map, int* map_size) {
@@ -682,7 +634,6 @@ void compress_files_threads(const char *dir_path, const char *compressed_file_pa
     closedir(dir);
 
     pthread_t threads[amount_files];
-    args_thread *arr_args[amount_files];
 
     dir = opendir(dir_path);
     if (dir == NULL) {
@@ -705,7 +656,6 @@ void compress_files_threads(const char *dir_path, const char *compressed_file_pa
             strncpy(args->file_name, entry->d_name, sizeof(args->file_name) - 1);
             args->compressed_file = compressed_file;
 
-            arr_args[thread_counter] = args;
             pthread_create(&threads[thread_counter], NULL, thread_process, args);
 
             thread_counter++;
@@ -757,7 +707,51 @@ void read_bits_threads(FILE* file, char* bits, size_t len) {
     }
 }
 
-void decompress_files_threads(const char *compressed_file_path, const char *output_dir) {
+void* decompress_file_threads(void* args) {
+    /*
+        Función que descomprime un archivo comprimido y guarda el contenido en un archivo de salida
+
+        Entradas:
+        - compressed_file_path: ruta del archivo comprimido
+        - file_name: nombre del archivo de salida
+        - output_file_path: ruta del archivo de salida
+        - position: posición en el archivo comprimido desde donde comenzar la descompresión
+        - huffman_tree: árbol de Huffman para la descompresión
+        - encoded_str: cadena codificada para la descompresión
+
+        Salidas:
+        - Ninguna
+
+        Restricciones:
+        - La variable compressed_file_path no debe ser NULL
+        - La variable file_name no debe ser NULL
+        - La variable output_file_path no debe ser NULL
+        - El árbol de Huffman no debe ser NULL
+        - La cadena codificada no debe ser NULL
+    */
+    decompress_args_t* decompress_args = (decompress_args_t*)args;
+    FILE* output_file = fopen(decompress_args->output_file_path, "wb");
+    if (!output_file) {
+        perror("Error abriendo el archivo de salida");
+        pthread_exit(NULL);
+    }
+
+    FILE* compressed_file = fopen(decompress_args->compressed_file_path, "rb");
+    if (!compressed_file) {
+        perror("Error abriendo el archivo comprimido para lectura");
+        fclose(output_file);
+        pthread_exit(NULL);
+    }
+    fseek(compressed_file, decompress_args->position, SEEK_SET);
+
+    decode_huffman_threads(decompress_args->encoded_str, decompress_args->huffman_tree, output_file);
+
+    fclose(output_file);
+    fclose(compressed_file);
+    pthread_exit(NULL);
+}
+
+void decompress_files_threads(const char* compressed_file_path, const char* output_dir) {
     /*
         Función que descomprime todos los archivos desde un archivo comprimido y guarda los resultados en un directorio
 
@@ -772,63 +766,126 @@ void decompress_files_threads(const char *compressed_file_path, const char *outp
         - La variable compressed_file_path no debe ser NULL
         - La variable output_dir no debe ser NULL
     */
-    FILE *compressed_file = fopen(compressed_file_path, "rb");
+    FILE* compressed_file = fopen(compressed_file_path, "rb");
     if (!compressed_file) {
         perror("Error abriendo el archivo comprimido para lectura");
         exit(EXIT_FAILURE);
     }
 
-    struct stat st = {0};
-    if (stat(output_dir, &st) == -1) {
-        mkdir(output_dir, 0700);
+    char** output_file_paths = (char**)malloc(INITIAL_CAPACITY * sizeof(char*));
+    if (!output_file_paths) {
+        perror("Error asignando memoria para las posiciones de los archivos");
+        exit(EXIT_FAILURE);
     }
 
+    char** output_files = (char**)malloc(INITIAL_CAPACITY * sizeof(char*));
+    if (!output_files) {
+        perror("Error asignando memoria para los nombres de archivos");
+        exit(EXIT_FAILURE);
+    }
+
+    long long int* output_integers = (long long int*)malloc(INITIAL_CAPACITY * sizeof(long long int));
+    if (!output_integers) {
+        perror("Error asignando memoria para los enteros largos");
+        exit(EXIT_FAILURE);
+    }
+
+    huffman_node** huffman_trees = (huffman_node**)malloc(INITIAL_CAPACITY * sizeof(huffman_node*));
+    if (!huffman_trees) {
+        perror("Error asignando memoria para los árboles de Huffman");
+        exit(EXIT_FAILURE);
+    }
+
+    char** encoded_strings = (char**)malloc(INITIAL_CAPACITY * sizeof(char*));
+    if (!encoded_strings) {
+        perror("Error asignando memoria para las cadenas codificadas");
+        exit(EXIT_FAILURE);
+    }
+
+    size_t output_file_count = 0;
     while (1) {
         size_t name_len;
-        if (fread(&name_len, sizeof(size_t), 1, compressed_file) != 1)
-            break;
+        if (fread(&name_len, sizeof(size_t), 1, compressed_file) != 1) break;
 
-        char *file_name = (char *)malloc(2048 + 1);
+        char* file_name = (char*)malloc(name_len + 1);
         if (file_name == NULL) {
-            perror("Error asignando memoria para el file_name");
+            perror("Error asignando memoria");
             exit(EXIT_FAILURE);
         }
         fread(file_name, sizeof(char), name_len, compressed_file);
         file_name[name_len] = '\0';
+        output_files[output_file_count] = file_name;
+        output_integers[output_file_count] = ftell(compressed_file);
 
-        huffman_node *root = read_huffman_tree_threads(compressed_file);
-
+        huffman_node* root = read_huffman_tree_threads(compressed_file);
         size_t encoded_len;
         fread(&encoded_len, sizeof(size_t), 1, compressed_file);
-        char *encoded_str = (char *)malloc(encoded_len + 1);
+
+        char* encoded_str = (char*)malloc(encoded_len + 1);
         if (encoded_str == NULL) {
-            perror("Error asignando memoria para el encoded_str");
+            perror("Error asignando memoria");
             exit(EXIT_FAILURE);
         }
         encoded_str[encoded_len] = '\0';
         read_bits_threads(compressed_file, encoded_str, encoded_len);
 
+        huffman_trees[output_file_count] = root;
+        encoded_strings[output_file_count] = encoded_str;
+
         size_t path_len = strlen(output_dir) + strlen(file_name) + 2;
-        char *output_file_path = (char *)malloc(path_len);
+        char* output_file_path = (char*)malloc(path_len);
         if (output_file_path == NULL) {
-            perror("Error asignando memoria para el output_file_path");
+            perror("Error asignando memoria");
             exit(EXIT_FAILURE);
         }
         snprintf(output_file_path, path_len, "%s/%s", output_dir, file_name);
-        FILE *output_file = fopen(output_file_path, "wb");
-        if (!output_file) {
-            perror("Error abriendo el archivo de salida");
-            exit(EXIT_FAILURE);
-        }
+        output_file_paths[output_file_count] = output_file_path;
+        output_file_count++;
+    }
+    fclose(compressed_file);
 
-        decode_huffman_threads(encoded_str, root, output_file);
-        fclose(output_file);
-
-        free(file_name);
-        free(encoded_str);
-        free(output_file_path);
-        free_huffman_tree_threads(root);
+    pthread_t* threads = (pthread_t*)malloc(output_file_count * sizeof(pthread_t));
+    if (!threads) {
+        perror("Error asignando memoria para los hilos");
+        exit(EXIT_FAILURE);
     }
 
-    fclose(compressed_file);
+    decompress_args_t* decompress_args = (decompress_args_t*)malloc(output_file_count * sizeof(decompress_args_t));
+    if (!decompress_args) {
+        perror("Error asignando memoria para los argumentos de los hilos");
+        exit(EXIT_FAILURE);
+    }
+
+    for (size_t i = 0; i < output_file_count; ++i) {
+        decompress_args[i].compressed_file_path = compressed_file_path;
+        decompress_args[i].file_name = output_files[i];
+        decompress_args[i].output_file_path = output_file_paths[i];
+        decompress_args[i].position = output_integers[i];
+        decompress_args[i].huffman_tree = huffman_trees[i];
+        decompress_args[i].encoded_str = encoded_strings[i];
+
+        if (pthread_create(&threads[i], NULL, decompress_file_threads, &decompress_args[i]) != 0) {
+            perror("Error al crear el hilo");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    for (size_t i = 0; i < output_file_count; ++i) {
+        pthread_join(threads[i], NULL);
+    }
+
+    for (size_t i = 0; i < output_file_count; ++i) {
+        free(output_files[i]);
+        free(output_file_paths[i]);
+        free(encoded_strings[i]);
+        free_huffman_tree_threads(huffman_trees[i]);
+    }
+
+    free(output_files);
+    free(output_file_paths);
+    free(output_integers);
+    free(huffman_trees);
+    free(encoded_strings);
+    free(threads);
+    free(decompress_args);
 }

@@ -690,7 +690,6 @@ void decompress_file_fork(const char* compressed_file_path, const char* file_nam
     }
     fseek(compressed_file, position, SEEK_SET);
 
-    // Decodificar la cadena codificada usando el árbol de Huffman
     decode_huffman_fork(encoded_str, huffman_tree, output_file);
 
     fclose(output_file);

@@ -7,15 +7,15 @@ Código creado por:
     Reyes Rodríguez	Ricardo Andrés
     rireyes@estudiantec.cr
     2022101681
-
-	Zúñiga Campos Omar Jesús
+    
+    Zúñiga Campos Omar Jesús
     omzuniga@estudiantec.cr
     2022019053
 
 Referencias bibliográficas:
--GeeksforGeeks. (2023a, abril 7). Huffman Decoding [Decodificación de Huffman]. GeeksforGeeks. https://www.geeksforgeeks.org/huffman-decoding/ 
--GeeksforGeeks. (2023b, setiembre 11). Huffman Coding [Codificación de Huffman]. GeeksforGeeks. https://www.geeksforgeeks.org/huffman-coding-greedy-algo-3/ 
--Hu, J. (2023, 12 octubre). Usa la función fork en C. Delft Stack. https://www.delftstack.com/es/howto/c/fork-in-c/
+    - GeeksforGeeks. (2023a, abril 7). Huffman Decoding [Decodificación de Huffman]. GeeksforGeeks. https://www.geeksforgeeks.org/huffman-decoding/ 
+    - GeeksforGeeks. (2023b, setiembre 11). Huffman Coding [Codificación de Huffman]. GeeksforGeeks. https://www.geeksforgeeks.org/huffman-coding-greedy-algo-3/ 
+    - Hu, J. (2023, 12 octubre). Usa la función fork en C. Delft Stack. https://www.delftstack.com/es/howto/c/fork-in-c/
 */
 
 #ifndef HUFFMAN_FORK_H
@@ -31,25 +31,12 @@ Referencias bibliográficas:
 #include <sys/stat.h>
 #include <string.h>
 #include <fcntl.h>
+#include "huffman_serial.h"
 
 // Prefijo para los archivos temporales generados durante la compresión
 #define TEMP_FILE_PREFIX "tempfile_"
 // Capacidad inicial para arrays dinámicos que almacenan archivos y posiciones
 #define INITIAL_CAPACITY 256
-
-// Nodo de un árbol de Huffman
-typedef struct huffman_node {
-    int frequency; // Frecuencia del carácter en el archivo
-    char character; // Carácter asociado a este nodo
-    struct huffman_node* left; // Hijo izquierdo del nodo
-    struct huffman_node* right; // Hijo derecho del nodo
-} huffman_node;
-
-// Mapa de caracteres a códigos binarios
-typedef struct code_map {
-    char character; // Carácter que se codifica
-    char* code; // Código binario asociado al carácter
-} code_map;
 
 // Función que compara dos nodos de Huffman en función de su frecuencia
 int compare_nodes_fork(const void* first_node, const void* second_node);

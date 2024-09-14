@@ -7,8 +7,8 @@ Código creado por:
     Reyes Rodríguez	Ricardo Andrés
     rireyes@estudiantec.cr
     2022101681
-
-	Zúñiga Campos Omar Jesús
+    
+    Zúñiga Campos Omar Jesús
     omzuniga@estudiantec.cr
     2022019053
 
@@ -16,9 +16,9 @@ Aclaración:
 - Se coloca la referencia al proyecto gutenberg debido a que de este web crawler fue hecho para usarse en dicho sitio. Además que los libros son extraídos de ahí.
 
 Referencias bibliográficas:
-    -Gutenberg, P. (s.f.). Proyecto Gutenberg. Proyecto Gutenberg. https://www.gutenberg.org/
-    -TidyLib. (1 de marzo, 2017). tidybuffio.h [Documentación de la API]. TidyLib. https://api.html-tidy.org/tidy/tidylib_api_5.4.0/tidybuffio_8h.html
-    -ZenRows. (2024, 1 junio). Web scraping with C in 2024 [Raspado WEB con C en 2024]. ZenRows. https://www.zenrows.com/blog/web-scraping-c#get-the-html
+    - Gutenberg, P. (s.f.). Proyecto Gutenberg. Proyecto Gutenberg. https://www.gutenberg.org/
+    - TidyLib. (1 de marzo, 2017). tidybuffio.h [Documentación de la API]. TidyLib. https://api.html-tidy.org/tidy/tidylib_api_5.4.0/tidybuffio_8h.html
+    - ZenRows. (2024, 1 junio). Web scraping with C in 2024 [Raspado WEB con C en 2024]. ZenRows. https://www.zenrows.com/blog/web-scraping-c#get-the-html
 */
 
 #ifndef WEB_CRAWLER_H

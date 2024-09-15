@@ -2,7 +2,7 @@
 #
 # Versión : 1.0
 #
-# Fecha de creación: Setiembre 13, 2024
+# Fecha de creación: Septiembre 13, 2024
 #
 # Autores : 
 #    - Ávila Ramírez Paublo Alexander (2022035584)

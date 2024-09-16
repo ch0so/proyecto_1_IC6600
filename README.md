@@ -9,7 +9,7 @@
 - Reyes Rodríguez Ricardo Andrés (2022101681)
 - Zúñiga Campos Omar Jesús (2022019053)
 
-Este proyecto implementa el algoritmo Huffman para comprimir y descomprimir archivos de texto en paralelo haciendo uso de `fork` y `threads` . Además, incluye el método serial normal y un web crawler para descargar los libros en texto plano para usar en la ejecución del proyecto.
+Este proyecto implementa el algoritmo Huffman para comprimir y descomprimir archivos de texto en paralelo haciendo uso de `fork` y `threads`. Además, incluye el método serial normal y un web crawler para descargar los libros en texto plano para usar en la ejecución del proyecto.
 
 ## Tabla de Contenidos
 

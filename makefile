@@ -10,8 +10,8 @@
 #    - Zúñiga Campos Omar Jesús       (2022019053)
 #
 # Descripción:
-# Este Makefile está diseñado para un proyecto que implementa el algoritmo Huffman para comprimir y descomprimir archivos de texto en paralelo haciendo uso de fork y threads . 
-# Además, incluye el método serial normal y un web crawler para descargar los libros en texto plano para usar en la ejecución del proyecto. Todo esto en un entorno de Fedora Workstation 40.
+# Este Makefile está diseñado para un proyecto que implementa el algoritmo Huffman para comprimir y descomprimir archivos de texto en paralelo haciendo uso de fork y threads. Además, incluye el método serial normal y un web crawler 
+# para descargar los libros en texto plano para usar en la ejecución del proyecto. Todo esto en un entorno de Fedora Workstation 40.
 #
 # Importante tener en cuenta:
 # - Es necesario que se asegure que el compilador GCC y las herramientas de construcción básicas están instaladas

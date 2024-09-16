@@ -60,41 +60,44 @@ La biblioteca pthread es esencial para desarrollar aplicaciones concurrentes y p
 
 ## Implementación de Huffman en Modo Fork
 
-La implementación del algoritmo de Huffman utilizando \texttt{fork()} involucra las siguientes funciones clave:
+`fork()` es una llamada al sistema que permite crear nuevos procesos en Unix/Linux. Esta función divide el proceso en dos: el proceso padre y el proceso hijo, cada uno con un espacio de direcciones independiente.
 
-\begin{itemize}
-    \item \texttt{compress\_files\_fork}: Esta función principal crea múltiples procesos usando \texttt{fork()} y asigna a cada uno la tarea de comprimir una parte del archivo de entrada.
-    \item \texttt{decompress\_files\_fork}: Realiza la descompresión en paralelo utilizando \texttt{fork()}. Cada proceso hijo descomprime una parte del archivo y escribe el resultado en archivos temporales.
-    \item \texttt{process\_part\_fork}: Esta función se encarga de realizar la compresión o descompresión de una sección específica del archivo que le es asignada a cada proceso hijo.
-    \item \texttt{wait\_for\_children}: Se utiliza para que el proceso padre espere a que todos los procesos hijos hayan terminado antes de unir los resultados parciales.
-\end{itemize}
+#### Funciones involucradas en la implementación con `fork`:
+
+- **`compress_files_fork`**: Crea múltiples procesos utilizando `fork()` y asigna a cada uno la tarea de comprimir una parte del archivo.
+- **`decompress_files_fork`**: Utiliza `fork()` para descomprimir el archivo comprimido en paralelo. Cada proceso hijo descomprime una parte y escribe en un archivo temporal.
+- **`process_part_fork`**: Esta función comprime o descomprime una sección específica del archivo que le es asignada a cada proceso hijo.
+- **`wait_for_children`**: El proceso padre utiliza esta función para esperar a que todos los procesos hijos terminen antes de ensamblar los resultados parciales.
+
 
 ## Implementación de Huffman en Modo Threads
 
-La implementación utilizando hilos (\texttt{pthread}) incluye las siguientes funciones:
+La biblioteca `pthread` permite la creación de hilos para implementar concurrencia y paralelismo en programas en C.
 
-\begin{itemize}
-    \item \texttt{compress\_files\_threads}: Función principal que inicia múltiples hilos (\texttt{pthread\_create()}) para dividir el archivo y comprimirlo en paralelo. 
-    \item \texttt{decompress\_files\_threads}: Similar a la versión de compresión, esta función inicia múltiples hilos para descomprimir el archivo en paralelo.
-    \item \texttt{compress\_part\_threads}: Esta función es ejecutada por cada hilo y se encarga de comprimir la parte asignada del archivo.
-    \item \texttt{decompress\_part\_threads}: Función encargada de descomprimir la parte del archivo que le es asignada a cada hilo.
-    \item \texttt{pthread\_mutex\_lock} y \texttt{pthread\_mutex\_unlock}: Estas funciones se utilizan para sincronizar el acceso a los recursos compartidos entre los hilos, como el archivo de salida.
-    \item \texttt{pthread\_join}: Se asegura de que el hilo principal espere a que todos los hilos terminen su trabajo antes de continuar.
-\end{itemize}
+#### Funciones involucradas en la implementación con `pthread`:
+
+- **`compress_files_threads`**: Inicia múltiples hilos utilizando `pthread_create()` para comprimir el archivo en paralelo.
+- **`decompress_files_threads`**: Inicia múltiples hilos para descomprimir el archivo comprimido en paralelo.
+- **`compress_part_threads`**: Función que es ejecutada por cada hilo para comprimir su parte asignada del archivo.
+- **`decompress_part_threads`**: Cada hilo utiliza esta función para descomprimir su parte del archivo.
+- **`pthread_mutex_lock`** y **`pthread_mutex_unlock`**: Se utilizan para sincronizar el acceso a los recursos compartidos (archivo de salida).
+- **`pthread_join`**: El hilo principal espera a que todos los hilos terminen su trabajo antes de continuar.
+
 
 ## Implementación Serial de Huffman
 
-La versión serial del algoritmo de Huffman incluye las siguientes funciones:
+La implementación serial sigue el proceso secuencial del algoritmo de Huffman.
 
-\begin{itemize}
-    \item \texttt{compress\_file\_serial}: Función principal que realiza la compresión de manera secuencial. Calcula las frecuencias, construye el árbol de Huffman y codifica el archivo.
-    \item \texttt{decompress\_file\_serial}: Función que reconstruye el árbol de Huffman a partir de la información almacenada en el archivo comprimido y realiza la descompresión.
-    \item \texttt{build\_huffman\_tree}: Construye el árbol de Huffman utilizando las frecuencias de los caracteres.
-    \item \texttt{generate\_huffman\_codes}: Genera los códigos de Huffman a partir del árbol y los almacena para la compresión.
-    \item \texttt{write\_compressed\_file}: Escribe el archivo comprimido utilizando los códigos de Huffman generados.
-    \item \texttt{read\_compressed\_file}: Lee el archivo comprimido para su descompresión.
-    \item \texttt{rebuild\_huffman\_tree}: Reconstruye el árbol de Huffman durante la descompresión usando los datos codificados en el archivo.
-\end{itemize}
+#### Funciones involucradas en la implementación serial:
+
+- **`compress_file_serial`**: Función principal que comprime el archivo secuencialmente, calculando las frecuencias, construyendo el árbol de Huffman y codificando el archivo.
+- **`decompress_file_serial`**: Reconstruye el árbol de Huffman desde el archivo comprimido y realiza la descompresión.
+- **`build_huffman_tree`**: Construye el árbol de Huffman utilizando las frecuencias de los caracteres.
+- **`generate_huffman_codes`**: Genera los códigos binarios de Huffman a partir del árbol construido.
+- **`write_compressed_file`**: Escribe el archivo comprimido utilizando los códigos generados.
+- **`read_compressed_file`**: Lee el archivo comprimido para realizar la descompresión.
+- **`rebuild_huffman_tree`**: Reconstruye el árbol de Huffman a partir de la información codificada en el archivo.
+
 
 ## Instalación
 

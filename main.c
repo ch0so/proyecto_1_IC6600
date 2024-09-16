@@ -30,6 +30,37 @@ Referencias bibliográficas:
 #include "huffman_serial.h"
 #include "huffman_threads.h"
 
+int is_directory_empty(const char *dir_path) {
+    /*
+        Función que verifica si un directorio está vacío
+
+        Entradas:
+        - dir_path: ruta del directorio a verificar
+
+        Salidas:
+        - 1 si el directorio está vacío
+        - 0 si el directorio no está vacío
+        - -1 si hubo un error al abrir el directorio
+
+        Restricciones:
+        - La ruta del directorio debe ser válida y accesible
+    */
+    struct dirent *entry;
+    DIR *dir = opendir(dir_path);
+    if (dir == NULL) {
+        return -1; 
+    }
+    int empty = 1; 
+    while ((entry = readdir(dir)) != NULL) {
+        if (entry->d_type != DT_DIR) {
+            empty = 0; 
+            break;
+        }
+    }
+    closedir(dir);
+    return empty;
+}
+
 int main(int argc, char *argv[]) {
     /*
         Función principal que maneja las opciones del programa
@@ -56,18 +87,8 @@ int main(int argc, char *argv[]) {
     */
 
     // Verificación de argumentos
-    if (argc != 2) {
+    if (argc < 2) {
         fprintf(stderr, "Uso: %s <opción>\n", argv[0]);
-        fprintf(stderr, "Opciones disponibles:\n");
-        fprintf(stderr, "  download_books\n");
-        fprintf(stderr, "  clear_directory_compressed\n");
-        fprintf(stderr, "  clear_directory_decompressed\n");
-        fprintf(stderr, "  compressed_fork\n");
-        fprintf(stderr, "  decompressed_fork\n");
-        fprintf(stderr, "  compressed_serial\n");
-        fprintf(stderr, "  decompressed_serial\n");
-        fprintf(stderr, "  compressed_threads\n");
-        fprintf(stderr, "  decompressed_threads\n");
         return EXIT_FAILURE;
     }
 
@@ -100,9 +121,14 @@ int main(int argc, char *argv[]) {
     } 
     // Manejo de la opción compressed_fork
     else if (strcmp(argv[1], "compressed_fork") == 0) {
+        if (stat(input_dir, &dir_stat) == -1 || is_directory_empty(input_dir)) {
+            fprintf(stderr, "El directorio '%s' no existe o está vacío. Debe ejecutar primero 'download_books' para obtener los libros\n", input_dir);
+            return EXIT_FAILURE;
+        }
         if (stat(compressed_file_dir, &dir_stat) == -1) { 
             if (mkdir(compressed_file_dir, 0700) != 0) {  
                 perror("Error creando el directorio");
+                return EXIT_FAILURE;
             }
         }
         gettimeofday(&start_time, NULL);
@@ -115,9 +141,14 @@ int main(int argc, char *argv[]) {
     } 
     // Manejo de la opción decompressed_fork
     else if (strcmp(argv[1], "decompressed_fork") == 0) {
+        if (stat(compressed_file_path, &dir_stat) == -1) {
+            fprintf(stderr, "El archivo comprimido '%s' no existe. Debe ejecutar primero 'compressed_fork' para comprimir los archivos\n", compressed_file_path);
+            return EXIT_FAILURE;
+        }
         if (stat(decompressed_dir, &dir_stat) == -1) { 
             if (mkdir(decompressed_dir, 0700) != 0) {  
                 perror("Error creando el directorio");
+                return EXIT_FAILURE;
             }
         }
         gettimeofday(&start_time, NULL);
@@ -130,9 +161,14 @@ int main(int argc, char *argv[]) {
     } 
     // Manejo de la opción compressed_serial
     else if (strcmp(argv[1], "compressed_serial") == 0) {
+        if (stat(input_dir, &dir_stat) == -1 || is_directory_empty(input_dir)) {
+            fprintf(stderr, "El directorio '%s' no existe o está vacío. Debe ejecutar primero 'download_books' para obtener los libros\n", input_dir);
+            return EXIT_FAILURE;
+        }
         if (stat(compressed_file_dir, &dir_stat) == -1) { 
             if (mkdir(compressed_file_dir, 0700) != 0) {  
                 perror("Error creando el directorio");
+                return EXIT_FAILURE;
             }
         }
         gettimeofday(&start_time, NULL);
@@ -145,9 +181,14 @@ int main(int argc, char *argv[]) {
     } 
     // Manejo de la opción decompressed_serial
     else if (strcmp(argv[1], "decompressed_serial") == 0) {
+        if (stat(compressed_file_path, &dir_stat) == -1) {
+            fprintf(stderr, "El archivo comprimido '%s' no existe. Debe ejecutar primero 'compressed_serial' para comprimir los archivos\n", compressed_file_path);
+            return EXIT_FAILURE;
+        }
         if (stat(decompressed_dir, &dir_stat) == -1) { 
             if (mkdir(decompressed_dir, 0700) != 0) {  
                 perror("Error creando el directorio");
+                return EXIT_FAILURE;
             }
         }
         gettimeofday(&start_time, NULL);
@@ -160,9 +201,14 @@ int main(int argc, char *argv[]) {
     } 
     // Manejo de la opción compressed_threads
     else if (strcmp(argv[1], "compressed_threads") == 0) {
+        if (stat(input_dir, &dir_stat) == -1 || is_directory_empty(input_dir)) {
+            fprintf(stderr, "El directorio '%s' no existe o está vacío. Debe ejecutar primero 'download_books' para obtener los libros\n", input_dir);
+            return EXIT_FAILURE;
+        }
         if (stat(compressed_file_dir, &dir_stat) == -1) { 
             if (mkdir(compressed_file_dir, 0700) != 0) {  
                 perror("Error creando el directorio");
+                return EXIT_FAILURE;
             }
         }
         gettimeofday(&start_time, NULL);
@@ -175,9 +221,14 @@ int main(int argc, char *argv[]) {
     } 
     // Manejo de la opción decompressed_threads
     else if (strcmp(argv[1], "decompressed_threads") == 0) {
+        if (stat(compressed_file_path, &dir_stat) == -1) {
+            fprintf(stderr, "El archivo comprimido '%s' no existe. Debe ejecutar primero 'compressed_threads' para comprimir los archivos\n", compressed_file_path);
+            return EXIT_FAILURE;
+        }
         if (stat(decompressed_dir, &dir_stat) == -1) { 
             if (mkdir(decompressed_dir, 0700) != 0) {  
                 perror("Error creando el directorio");
+                return EXIT_FAILURE;
             }
         }
         gettimeofday(&start_time, NULL);

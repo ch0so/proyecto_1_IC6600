@@ -1,6 +1,8 @@
 # Compresión y descomrpesión con Huffman - Primer Proyecto - Instituto Tecnológico de Costa Rica
+
 ## Profesor 
 - Rodolfo Mora Zamora
+
 ## Grupo
 
 - Ávila Ramírez Paublo Alexander (2022065584)

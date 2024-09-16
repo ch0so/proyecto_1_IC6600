@@ -20,6 +20,7 @@ Este proyecto implementa el algoritmo Huffman para comprimir y descomprimir arch
 - [Implementación de Huffman en Modo Fork](#implementación-de-huffman-en-modo-fork)
 - [Implementación de Huffman en Modo Threads](#implementación-de-huffman-en-modo-threads)
 - [Implementación de Serial de Huffman](#implementación-serial-de-huffman)
+- [Implementación de Web Crawler](#implementación-de-web-crawler)
 - [Referencias Bibliográficas](#referencias-bibliográficas)
 
 ## Introduccion
@@ -104,6 +105,24 @@ La implementación serial sigue el proceso secuencial del algoritmo de Huffman.
 - **`read_compressed_file`**: Lee el archivo comprimido para realizar la descompresión.
 - **`rebuild_huffman_tree`**: Reconstruye el árbol de Huffman a partir de la información codificada en el archivo.
 
+## Implementación de Web Crawler
+Esta parte del proyecto fue realizada con el fin de descargar los libros.
+
+#### Funciones involucradas en la implementación del Web Crawler:
+
+- **write_memory_callback**: Función que escribe datos en memoria durante una transferencia de CURL.
+
+- **extract_links_from_html**: Función que extrae enlaces de una cadena HTML y los guarda en un archivo.
+
+- **find_link**: Función que encuentra un enlace en una cadena HTML que coincida con un patrón específico.
+
+- **extract_title_and_author**: Función que extrae el título y el autor de un archivo de texto y los guarda en las variables proporcionadas. 
+- **generate_unique_filename**: Función que genera un nombre de archivo único basado en un nombre base.
+- **process_link**: Función que procesa un enlace utilizando CURL para descargar datos y luego los procesa.
+
+- **remove_directory**: Función que elimina un directorio y su contenido de forma recursiva.
+
+- **download_text_files**: Función que descarga archivos de texto desde una URL base y los procesa.
 
 ## Instalación
 
@@ -211,3 +230,5 @@ Esto va a compilar el proyecto completo para dejarlo listo para su ejecución.
 - IBM. (2023, marzo 24). Using mutexes [Uso de Mutexes]. IBM. https://www.ibm.com/docs/pt-br/aix/7.2?topic=programming-using-mutexes
 
 - Tanenbaum, A. S., & García, R. E. (2003). Sistemas operativos modernos. Pearson Educación. https://books.google.co.cr/books?id=g88A4rxPH3wC
+
+- ZenRows. (2024, 1 junio). Web scraping with C in 2024 [Raspado WEB con C en 2024]. ZenRows. https://www.zenrows.com/blog/web-scraping-c#get-the-html

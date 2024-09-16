@@ -14,7 +14,7 @@ Este proyecto implementa el algoritmo Huffman para comprimir y descomprimir arch
 - [Instalación](#Instalación)
 - [Compilación](#Compilación)
 - [Ejecución](#Ejecución)
-- [Referencias Bibliográficas](#Referencias)
+- [Referencias Bibliográficas](#referencias-bibliográficas)
 
 ## Introduccion
 

@@ -18,7 +18,7 @@
 #   en un sistema de Fedora Workstation 40. Se pueden instalar las herramientas necesarias usando el siguiente comando:
 #     sudo dnf install gcc make
 # 
-# - En el caso de no contar con Fedora WOrkstation 39, debe dirigirse a la página oficial e instalar el sistema operativo
+# - En el caso de no contar con Fedora WOrkstation 40, debe dirigirse a la página oficial e instalar el sistema operativo
 #   que se encuentra en el siguiente enlace:
 #     https://fedoraproject.org/es/workstation/download/
 # 

@@ -33,7 +33,7 @@ Algoritmo de Huffman para comprimir archivos de texto. En este proyecto, se pres
 
 1. **Fork**:
 
-fork() es una llamada al sistema en Unix/Linux que permite crear nuevos procesos. Esta función divide el proceso en dos: el proceso padre y el proceso hijo. Ambos procesos continúan ejecutándose desde el punto donde se invocó fork(), pero con un espacio de direcciones independiente (Hu, 2023).
+fork() es una llamada al sistema en Unix/Linux que permite crear nuevos procesos. Esta función divide el proceso en dos: El proceso padre y el proceso hijo. Ambos procesos continúan ejecutándose desde el punto donde se invocó fork(), pero con un espacio de direcciones independiente (Hu, 2023).
 
 - Valores de retorno: fork() devuelve 0 en el proceso hijo y el PID del hijo en el proceso padre. Si falla, retorna -1 (Hu, 2023).
 - Memoria: Aunque inicialmente comparten memoria (copy-on-write), cualquier cambio en uno de los procesos hace que las páginas modificadas se copien, asegurando independencia (Hu, 2023).
@@ -66,7 +66,7 @@ La biblioteca pthread es esencial para desarrollar aplicaciones concurrentes y p
 
 ## Implementación de Huffman en Modo Fork
 
-`fork()` es una llamada al sistema que permite crear nuevos procesos en Unix/Linux. Esta función divide el proceso en dos: el proceso padre y el proceso hijo, cada uno con un espacio de direcciones independiente.
+`fork()` es una llamada al sistema que permite crear nuevos procesos en Unix/Linux. Esta función divide el proceso en dos: El proceso padre y el proceso hijo, cada uno con un espacio de direcciones independiente (Hu, 2023).
 
 #### Funciones involucradas en la implementación con `fork`:
 
@@ -78,7 +78,7 @@ La biblioteca pthread es esencial para desarrollar aplicaciones concurrentes y p
 
 ## Implementación de Huffman en Modo Threads
 
-La biblioteca `pthread` permite la creación de hilos para implementar concurrencia y paralelismo en programas en C.
+La biblioteca `pthread` permite la creación de hilos para implementar concurrencia y paralelismo en programas en C (GeeksforGeeks, 2023c).
 
 #### Funciones involucradas en la implementación con `pthread`:
 

@@ -27,36 +27,36 @@ Algoritmo de Huffman para comprimir archivos de texto. En este proyecto, se pres
 
 1. **Fork**:
 
-fork() es una llamada al sistema en Unix/Linux que permite crear nuevos procesos. Esta función divide el proceso en dos: el proceso padre y el proceso hijo. Ambos procesos continúan ejecutándose desde el punto donde se invocó fork(), pero con un espacio de direcciones independiente.
+fork() es una llamada al sistema en Unix/Linux que permite crear nuevos procesos. Esta función divide el proceso en dos: el proceso padre y el proceso hijo. Ambos procesos continúan ejecutándose desde el punto donde se invocó fork(), pero con un espacio de direcciones independiente (Hu, 2023).
 
-- Valores de retorno: fork() devuelve 0 en el proceso hijo y el PID del hijo en el proceso padre. Si falla, retorna -1.
-- Memoria: Aunque inicialmente comparten memoria (copy-on-write), cualquier cambio en uno de los procesos hace que las páginas modificadas se copien, asegurando independencia.
-- Herencia: El proceso hijo hereda descriptores de archivos, variables de entorno y otros atributos del padre, pero no hereda ciertos identificadores de procesos ni bloqueos.
-- Eficiencia: La creación de procesos con fork() es más costosa que con hilos, ya que los procesos no comparten el mismo espacio de memoria. Sin embargo, proporciona un aislamiento completo entre procesos, lo que es útil para seguridad y estabilidad.
-- Ejemplo de uso: fork() se combina frecuentemente con exec() para ejecutar nuevos programas en el contexto del proceso hijo.
+- Valores de retorno: fork() devuelve 0 en el proceso hijo y el PID del hijo en el proceso padre. Si falla, retorna -1 (Hu, 2023).
+- Memoria: Aunque inicialmente comparten memoria (copy-on-write), cualquier cambio en uno de los procesos hace que las páginas modificadas se copien, asegurando independencia (Hu, 2023).
+- Herencia: El proceso hijo hereda descriptores de archivos, variables de entorno y otros atributos del padre, pero no hereda ciertos identificadores de procesos ni bloqueos (Hu, 2023).
+- Eficiencia: La creación de procesos con fork() es más costosa que con hilos, ya que los procesos no comparten el mismo espacio de memoria. Sin embargo, proporciona un aislamiento completo entre procesos, lo que es útil para seguridad y estabilidad (Hu, 2023).
+- Ejemplo de uso: fork() se combina frecuentemente con exec() para ejecutar nuevos programas en el contexto del proceso hijo (Hu, 2023).
 
-La función es fundamental para sistemas multitarea y paralelismo, pero su mal uso puede generar problemas como la saturación de recursos (fork bomb).
+La función es fundamental para sistemas multitarea y paralelismo, pero su mal uso puede generar problemas como la saturación de recursos (fork bomb) (Hu, 2023).
 
 2. **Thread**:
 
-La biblioteca pthread permite la creación de hilos para implementar concurrencia y paralelismo en programas de C. Cada hilo ejecuta una función definida por el programador y puede recibir argumentos a través de un puntero.
+La biblioteca pthread permite la creación de hilos para implementar concurrencia y paralelismo en programas de C. Cada hilo ejecuta una función definida por el programador y puede recibir argumentos a través de un puntero (GeeksforGeeks, 2023c).
 
-- Creación de hilos: Se utiliza pthread_create() para crear un hilo que ejecuta una función, y pthread_join() para esperar a que un hilo termine.
+- Creación de hilos: Se utiliza pthread_create() para crear un hilo que ejecuta una función, y pthread_join() para esperar a que un hilo termine (GeeksforGeeks, 2023c).
     ```c
     pthread_create(&thread, NULL, print_message, NULL);
     pthread_join(thread, NULL);
     ```
-- Sincronización: La biblioteca incluye mecanismos como mutexes, variables de condición y semáforos para manejar el acceso a recursos compartidos y evitar condiciones de carrera. Un mutex asegura que solo un hilo acceda a una sección crítica a la vez.
+- Sincronización: La biblioteca incluye mecanismos como mutexes, variables de condición y semáforos para manejar el acceso a recursos compartidos y evitar condiciones de carrera. Un mutex asegura que solo un hilo acceda a una sección crítica a la vez (GeeksforGeeks, 2023c).
     ```c
     pthread_mutex_lock(&mutex);
     // Sección crítica
     pthread_mutex_unlock(&mutex);
     ```
-- Variables de condición: Permiten que un hilo espere hasta que una condición específica se cumpla, coordinando la ejecución entre hilos mediante pthread_cond_wait() y pthread_cond_signal().
-- Otras herramientas: También soporta bloqueos de lectura-escritura (pthread_rwlock_t) y semáforos para controlar el acceso concurrente a recursos.
-- Finalización de hilos: Se utiliza pthread_exit() para terminar un hilo de forma segura, permitiendo la devolución de valores si es necesario.
+- Variables de condición: Permiten que un hilo espere hasta que una condición específica se cumpla, coordinando la ejecución entre hilos mediante pthread_cond_wait() y pthread_cond_signal() (GeeksforGeeks, 2023c).
+- Otras herramientas: También soporta bloqueos de lectura-escritura (pthread_rwlock_t) y semáforos para controlar el acceso concurrente a recursos (GeeksforGeeks, 2023c).
+- Finalización de hilos: Se utiliza pthread_exit() para terminar un hilo de forma segura, permitiendo la devolución de valores si es necesario (GeeksforGeeks, 2023c).
 
-La biblioteca pthread es esencial para desarrollar aplicaciones concurrentes y paralelas en C, proporcionando las herramientas necesarias para la sincronización y gestión eficiente de hilos.
+La biblioteca pthread es esencial para desarrollar aplicaciones concurrentes y paralelas en C, proporcionando las herramientas necesarias para la sincronización y gestión eficiente de hilos (GeeksforGeeks, 2023c).
 
 
 ## Instalación

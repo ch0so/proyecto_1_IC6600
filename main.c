@@ -87,8 +87,18 @@ int main(int argc, char *argv[]) {
     */
 
     // Verificación de argumentos
-    if (argc < 2) {
+    if (argc != 2) {
         fprintf(stderr, "Uso: %s <opción>\n", argv[0]);
+        fprintf(stderr, "Opciones disponibles:\n");
+        fprintf(stderr, "  download_books\n");
+        fprintf(stderr, "  clear_directory_compressed\n");
+        fprintf(stderr, "  clear_directory_decompressed\n");
+        fprintf(stderr, "  compressed_fork\n");
+        fprintf(stderr, "  decompressed_fork\n");
+        fprintf(stderr, "  compressed_serial\n");
+        fprintf(stderr, "  decompressed_serial\n");
+        fprintf(stderr, "  compressed_threads\n");
+        fprintf(stderr, "  decompressed_threads\n");
         return EXIT_FAILURE;
     }
 

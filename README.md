@@ -8,6 +8,13 @@
 
 Este proyecto implementa el algoritmo Huffman para comprimir y descomprimir archivos de texto en paralelo haciendo uso de `fork` y `threads` . Además, incluye el método serial normal y un web crawler para descargar los libros en texto plano para usar en la ejecucion del proyecto.
 
+## Tabla de Contenidos
+
+- [Introducción](#Introducción)
+- [Instalación](#Instalación)
+- [Compilación](#Compilación)
+- [Ejecución](#Ejecución)
+- [Referencias Bibliográficas](#Referencias)
 
 ## Introduccion
 
@@ -146,3 +153,15 @@ Esto va a compilar el proyecto completo para dejarlo listo para su ejecución.
     ```
     Esta opción descomprime el archivo comprimido utilizando hilos "threads"
 
+## Referencias bibliográficas
+- GeeksforGeeks. (2023a, abril 7). Huffman Decoding [Decodificación de Huffman]. GeeksforGeeks. https://www.geeksforgeeks.org/huffman-decoding/
+
+- GeeksforGeeks. (2023b, septiembre 11). Huffman Coding [Codificación de Huffman]. GeeksforGeeks. https://www.geeksforgeeks.org/huffman-coding-greedy-algo-3/
+
+- GeeksforGeeks. (2023c, 9 mayo). Thread functions in C/C++ [Funciones de Hilos en C/C++]. GeeksforGeeks. https://www.geeksforgeeks.org/thread-functions-in-c-c/
+
+- Hu, J. (2023, 12 octubre). Usa la función fork en C. Delft Stack. https://www.delftstack.com/es/howto/c/fork-in-c/
+
+- IBM. (2023, marzo 24). Using mutexes [Uso de Mutexes]. IBM. https://www.ibm.com/docs/pt-br/aix/7.2?topic=programming-using-mutexes
+
+- Tanenbaum, A. S., & García, R. E. (2003). Sistemas operativos modernos. Pearson Educación. https://books.google.co.cr/books?id=g88A4rxPH3wC

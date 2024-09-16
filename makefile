@@ -10,16 +10,15 @@
 #    - Zúñiga Campos Omar Jesús       (2022019053)
 #
 # Descripción:
-# Este Makefile está diseñado para compilar una biblioteca estática y un programa ejecutable
-# en un entorno Fedora. La biblioteca estática incluye implementaciones de mutex, semáforo binario,
-# semáforo de conteo, barrera y candado de lectura/escritura. 
+# Este Makefile está diseñado para un proyecto que implementa el algoritmo Huffman para comprimir y descomprimir archivos de texto en paralelo haciendo uso de fork y threads . 
+# Además, incluye el método serial normal y un web crawler para descargar los libros en texto plano para usar en la ejecución del proyecto. Todo esto en un entorno de Fedora Workstation 40.
 #
 # Importante tener en cuenta:
 # - Es necesario que se asegure que el compilador GCC y las herramientas de construcción básicas están instaladas
-#   en un sistema de Fedora Workstation 39. Se pueden instalar las herramientas necesarias usando el siguiente comando:
+#   en un sistema de Fedora Workstation 40. Se pueden instalar las herramientas necesarias usando el siguiente comando:
 #     sudo dnf install gcc make
 # 
-# - En el caso de no contar con Fedora WOrkstation 39, debe dirigirse a la página oficial e instalar el sistema operativo
+# - En el caso de no contar con Fedora WOrkstation 40, debe dirigirse a la página oficial e instalar el sistema operativo
 #   que se encuentra en el siguiente enlace:
 #     https://fedoraproject.org/es/workstation/download/
 # 
@@ -52,7 +51,7 @@ HDRS = web_crawler.h huffman_fork.h huffman_serial.h huffman_threads.h
 # Ejecutables
 EXECUTABLE_MAIN = project_1
 
-# Objetivo por defecto: compilar ambos ejecutables
+# Objetivo por defecto: Compilar el ejecutable
 all: $(EXECUTABLE_MAIN)
 
 $(EXECUTABLE_MAIN): $(OBJS)

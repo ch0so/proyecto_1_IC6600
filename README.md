@@ -14,6 +14,9 @@ Este proyecto implementa el algoritmo Huffman para comprimir y descomprimir arch
 - [Instalación](#Instalación)
 - [Compilación](#Compilación)
 - [Ejecución](#Ejecución)
+- [Implementación de Huffman en Modo Fork](#implementación-de-huffman-en-modo-fork)
+- [Implementación de Huffman en Modo Threads](#implementación-de-huffman-en-modo-threads)
+- [Implementación de Serial de Huffman](#implementación-serial-de-huffman)
 - [Referencias Bibliográficas](#referencias-bibliográficas)
 
 ## Introduccion

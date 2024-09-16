@@ -1,5 +1,6 @@
-# Huffman Coding Project - proyecto_1_IC6600
-
+# Compresión y descomrpesión con Huffman - Primer Proyecto - Instituto Tecnológico de Costa Rica
+## Profesor 
+- Rodolfo Mora Zamora
 ## Grupo
 
 - Ávila Ramírez Paublo Alexander (2022065584)
